@@ -1,0 +1,79 @@
+{
+  "name": "react-native-drawer-layout",
+  "description": "Drawer component for React Native",
+  "version": "4.1.6",
+  "keywords": [
+    "react-native-component",
+    "react-component",
+    "react-native",
+    "ios",
+    "android",
+    "drawer",
+    "swipe"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/react-navigation/react-navigation.git",
+    "directory": "packages/react-native-drawer-layout"
+  },
+  "bugs": {
+    "url": "https://github.com/react-navigation/react-navigation/issues"
+  },
+  "homepage": "https://reactnavigation.org/docs/drawer-layout/",
+  "source": "./src/index.tsx",
+  "main": "./lib/module/index.js",
+  "types": "./lib/typescript/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/typescript/src/index.d.ts",
+      "default": "./lib/module/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "lib",
+    "!**/__tests__"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "prepack": "bob build",
+    "clean": "del lib"
+  },
+  "dependencies": {
+    "use-latest-callback": "^0.2.1"
+  },
+  "devDependencies": {
+    "del-cli": "^5.1.0",
+    "react": "18.3.1",
+    "react-native": "0.76.2",
+    "react-native-builder-bob": "^0.40.0",
+    "typescript": "^5.5.2"
+  },
+  "peerDependencies": {
+    "react": ">= 18.2.0",
+    "react-native": "*",
+    "react-native-gesture-handler": ">= 2.0.0",
+    "react-native-reanimated": ">= 2.0.0"
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      [
+        "module",
+        {
+          "esm": true
+        }
+      ],
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
+  },
+  "gitHead": "174dd433d7c7bdd13958c8527760a688e64ab478"
+}
