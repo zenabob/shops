@@ -244,13 +244,24 @@ const ResultOfSearch = ({ route, navigation }) => {
       </TouchableOpacity>
       <Text style={styles.heading}>Results for "{categoryName}"</Text>
 
-      <FlatList
-        data={products}
-        keyExtractor={(item) => item._id}
-        renderItem={renderItem}
-        numColumns={2}
-        contentContainerStyle={{ paddingBottom: 100 }}
-      />
+{products.length === 0 ? (
+  <View style={styles.emptyContainer}>
+    <Image
+      source={require("../assets/img/no-results.png")} 
+      style={styles.emptyImage}
+    />
+    <Text style={styles.emptyText}>No results found...</Text>
+  </View>
+) : (
+  <FlatList
+    data={products}
+    keyExtractor={(item) => item._id}
+    renderItem={renderItem}
+    numColumns={2}
+    contentContainerStyle={{ paddingBottom: 100 }}
+  />
+)}
+
       {selectedProductDetails && (
         <ProductDetails
           visible={showDetailModal}
@@ -323,6 +334,25 @@ discountedPrice: {
   fontSize: 16,
   fontWeight: "bold",
   marginTop: 2,
+},
+emptyContainer: {
+  alignItems: "center",
+  justifyContent: "center",
+  marginTop: 50,
+},
+
+emptyImage: {
+  width: 200,
+  height: 200,
+  marginBottom: 50,
+  resizeMode: "contain",
+  marginTop: 100,
+},
+
+emptyText: {
+  fontSize: 30,
+  color: "#000",
+  fontWeight: "bold",
 },
 
 });

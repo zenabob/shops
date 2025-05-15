@@ -14,6 +14,7 @@ import ProductDetails from "../modals/ProductDetails";
 
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 40) / 2;
+
 const FavoritesScreen = ({ route }) => {
   const { shopId, userId } = route.params;
   const [favorites, setFavorites] = useState([]);
@@ -22,12 +23,15 @@ const FavoritesScreen = ({ route }) => {
   const [selectedColorName, setSelectedColorName] = useState(null);
   const [selectedMainImage, setSelectedMainImage] = useState(null);
   const [selectedColorImages, setSelectedColorImages] = useState([]);
-  const [removedProductId, setRemovedProductId] = useState(null);
 
   const navigation = useNavigation();
 
   useEffect(() => {
-    if (userId) fetchFavorites();
+    if (!userId) {
+      console.warn("⚠️ userId is undefined or null, cannot fetch favorites");
+      return;
+    }
+    fetchFavorites();
   }, [userId]);
 
   const fetchFavorites = async () => {
@@ -35,17 +39,12 @@ const FavoritesScreen = ({ route }) => {
       const res = await axios.get(`http://172.20.10.4:5001/user/${userId}/favorites`);
       setFavorites(res.data);
     } catch (err) {
-      console.error("Failed to fetch favorites:", err);
+      console.error("❌ Failed to fetch favorites:", err.response?.data || err.message);
     }
   };
 
   const handleAddToCart = async (cartItem) => {
     try {
-      if (!userId) {
-        alert("User not logged in");
-        return;
-      }
-
       const response = await fetch(`http://172.20.10.4:5001/profile/${userId}/cart`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -63,41 +62,33 @@ const FavoritesScreen = ({ route }) => {
       alert("Something went wrong");
     }
   };
+
   const handleCloseModal = () => {
     setShowDetailModal(false);
-  
-    if (removedProductId) {
-      setFavorites((prev) =>
-        prev.filter((item) => item.productId !== removedProductId)
-      );
-      setRemovedProductId(null); // نرجع نفضيها
-    }
   };
-  
-  const handleFavoriteToggle = (productId, isNowFavorite) => {
-    if (!isNowFavorite) {
-      setRemovedProductId(productId); 
-    }
+
+  const handleFavoriteToggle = async () => {
+    // ✅ أعد تحميل المفضلات مباشرة بعد أي تعديل
+    await fetchFavorites();
   };
-  
-  
+
   const openProductDetails = async (item) => {
     try {
       const resolvedShopId = item.shopId?._id || item.shopId;
-  
+
       if (!resolvedShopId || !item.productId) {
         alert("Missing product or shop ID.");
         return;
       }
-  
+
       const res = await axios.get(
         `http://172.20.10.4:5000/public/shop/${resolvedShopId}/product/${item.productId}`
       );
-  
+
       const fullProduct = res.data.product;
       const firstColor = fullProduct.colors?.[0];
-  
-      setSelectedProductDetails({ ...fullProduct, shopId: resolvedShopId }); // 👈 save shopId here
+
+      setSelectedProductDetails({ ...fullProduct, shopId: resolvedShopId });
       setSelectedColorName(firstColor?.name || "");
       setSelectedMainImage(
         firstColor?.previewImage || firstColor?.images?.[0] || fullProduct.MainImage
@@ -109,23 +100,37 @@ const FavoritesScreen = ({ route }) => {
       alert("Could not load product details.");
     }
   };
-  
-  
-  
 
-  const renderItem = ({ item, index }) => (
-    <TouchableOpacity
-      style={styles.card}
-      key={`${item.productId}_${index}`}
-      onPress={() => openProductDetails(item)}
-    >
-      <Image source={{ uri: item.image }} style={styles.image} />
-      <Text style={styles.title} numberOfLines={2}>
-        {item.title}
-      </Text>
-      <Text style={styles.price}>{item.price} ILS</Text>
-    </TouchableOpacity>
-  );
+  const renderItem = ({ item, index }) => {
+    const hasValidOffer =
+      item.offer && new Date(item.offer.expiresAt) > new Date();
+
+    const discountedPrice = hasValidOffer
+      ? (item.price * (1 - item.offer.discountPercentage / 100)).toFixed(2)
+      : null;
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        key={`${item.productId}_${index}`}
+        onPress={() => openProductDetails(item)}
+      >
+        <Image source={{ uri: item.image }} style={styles.image} />
+        <Text style={styles.title} numberOfLines={2}>
+          {item.title}
+        </Text>
+
+        {hasValidOffer ? (
+          <>
+            <Text style={styles.originalPrice}>{item.price} ILS </Text>
+            <Text style={styles.discountedPrice}>{discountedPrice} ILS </Text>
+          </>
+        ) : (
+          <Text style={styles.price}>{item.price} ILS </Text>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -156,7 +161,7 @@ const FavoritesScreen = ({ route }) => {
           onAddToCart={handleAddToCart}
           shopId={selectedProductDetails?.shopId}
           userId={userId}
-          onFavoriteToggle={handleFavoriteToggle}
+          onFavoriteToggle={handleFavoriteToggle} // ✅ مهم
         />
       )}
     </View>
@@ -176,7 +181,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: cardWidth,
-    height: 270,
+    height: 300,
     backgroundColor: "#fff",
     elevation: 2,
     shadowColor: "#ccc",
@@ -194,14 +199,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     color: "#333",
-    padding:5,
     marginBottom: 4,
+    padding: 5,
   },
   price: {
     fontSize: 14,
     color: "#e53935",
     fontWeight: "bold",
-    padding:5,
+    padding: 5,
+  },
+  originalPrice: {
+    textDecorationLine: "line-through",
+    color: "#888",
+    fontSize: 13,
+    fontWeight: "500",
+    padding: 5,
+  },
+  discountedPrice: {
+    color: "#e53935",
+    fontSize: 15,
+    fontWeight: "bold",
+    marginBottom: 2,
+    padding: 5,
   },
   backButton: {
     position: "absolute",

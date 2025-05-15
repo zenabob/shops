@@ -90,40 +90,54 @@ useEffect(() => {
   
   // ✅ Toggle Favorite
   const toggleFavorite = async () => {
-    if (!selectedProductDetails || !userId) return;
-  
-    try {
-      if (isFavorite) {
-        await axios.delete(
-          `http://172.20.10.4:5001/user/${userId}/favorites/${selectedProductDetails._id}`
-        );
-        setIsFavorite(false);
-        if (onFavoriteToggle) {
-          onFavoriteToggle(selectedProductDetails._id, false); // ← نحكي للصفحة أنه نحذف
-        }
-      } else {
-        const favoriteItem = {
-          productId: selectedProductDetails._id,
-          title: selectedProductDetails.title,
-          image: selectedMainImage,
-          color: selectedColorName,
-          price: selectedProductDetails.price,
-          shopId,
-        };
-  
-        await axios.post(
-          `http://172.20.10.4:5001/user/${userId}/favorites`,
-          favoriteItem
-        );
-        setIsFavorite(true);
-        if (onFavoriteToggle) {
-          onFavoriteToggle(selectedProductDetails._id, true); 
-        }
+  if (!selectedProductDetails || !userId) return;
+
+  try {
+    if (isFavorite) {
+      await axios.delete(
+        `http://172.20.10.4:5001/user/${userId}/favorites/${selectedProductDetails._id}`
+      );
+      setIsFavorite(false);
+      if (onFavoriteToggle) {
+        onFavoriteToggle(selectedProductDetails._id, false);
       }
-    } catch (error) {
-      console.error("Error toggling favorite:", error);
+    } else {
+      // ✅ نتحقق هنا مباشرة من العرض الفعلي
+      let offer = null;
+      if (
+        selectedProductDetails.offer &&
+        new Date(selectedProductDetails.offer.expiresAt) > new Date()
+      ) {
+        offer = {
+          discountPercentage: selectedProductDetails.offer.discountPercentage,
+          expiresAt: selectedProductDetails.offer.expiresAt,
+        };
+      }
+
+      const favoriteItem = {
+        productId: selectedProductDetails._id,
+        title: selectedProductDetails.title,
+        image: selectedMainImage,
+        color: selectedColorName,
+        price: selectedProductDetails.price,
+        shopId: typeof shopId === "object" ? shopId._id : shopId,
+        offer, // ✅ سيتم تمرير العرض الصحيح إن وجد
+      };
+
+      await axios.post(
+        `http://172.20.10.4:5001/user/${userId}/favorites`,
+        favoriteItem
+      );
+      setIsFavorite(true);
+      if (onFavoriteToggle) {
+        onFavoriteToggle(selectedProductDetails._id, true);
+      }
     }
-  };
+  } catch (error) {
+    console.error("Error toggling favorite:", error);
+  }
+};
+
   
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -251,15 +265,20 @@ useEffect(() => {
                   );
 
                   const cartItem = {
-                    productId: selectedProductDetails._id,
-                    title: selectedProductDetails.title,
-                    image: selectedMainImage,
-                    price: selectedProductDetails.price,
-                    selectedColor: selectedColorName,
-                    selectedSize: selectedSize,
-                    quantity: 1,
-                    shopId: typeof shopId === "object" ? shopId._id : shopId,
-                  };
+  productId: selectedProductDetails._id,
+  title: selectedProductDetails.title,
+  image: selectedMainImage,
+  price: selectedProductDetails.price,
+  selectedColor: selectedColorName,
+  selectedSize: selectedSize,
+  quantity: 1,
+  shopId: typeof shopId === "object" ? shopId._id : shopId,
+  offer:
+    selectedProductDetails.offer &&
+    new Date(selectedProductDetails.offer.expiresAt) > new Date()
+      ? selectedProductDetails.offer
+      : null,
+};
                   
                   
                   onAddToCart(cartItem);

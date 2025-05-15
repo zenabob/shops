@@ -83,8 +83,25 @@ const MainScreen = () => {
       const categories = data.filter((d) => d.type === "category");
       const products = data.filter((d) => d.type === "product");
       const colors = data.filter((d) => d.type === "color");
+      const queryLower = text.toLowerCase();
 
-      setSuggestions([...shops, ...categories, ...products, ...colors]);
+      const sortByMatch = (a, b) => {
+        const aName = (a.name || a.colorName || "").toLowerCase();
+        const bName = (b.name || b.colorName || "").toLowerCase();
+
+        const aStarts = aName.startsWith(queryLower);
+        const bStarts = bName.startsWith(queryLower);
+
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+        return 0; // keep original order if both start or neither starts
+      };
+
+      const sorted = [...shops, ...categories, ...products, ...colors].sort(
+        sortByMatch
+      );
+
+      setSuggestions(sorted);
     } catch (error) {
       console.error("❌ Error fetching suggestions:", error);
       setSuggestions([]);
@@ -94,21 +111,23 @@ const MainScreen = () => {
   };
 
   useEffect(() => {
-  fetchData(); // initial fetch
-  fetchCovers();
+    fetchData(); // initial fetch
+    fetchCovers();
 
-  const intervalId = setInterval(() => {
-    fetchData(); // refresh products every minute
-  }, 10000);
+    const intervalId = setInterval(() => {
+      fetchData(); // refresh products every minute
+    }, 10000);
 
-  return () => clearInterval(intervalId); // cleanup
-}, []);
+    return () => clearInterval(intervalId); // cleanup
+  }, []);
 
   const handleSuggestionPress = (suggestion) => {
     if (suggestion.type === "shop") {
       navigation.navigate("ShopProfile", {
         shopId: suggestion.shopId || null,
         shopName: suggestion.name,
+        userId,
+
       });
     } else if (suggestion.type === "category") {
       navigation.navigate("ResultOfSearch", {
@@ -170,31 +189,60 @@ const MainScreen = () => {
   };
 
   const handleAddToCart = async (cartItem) => {
-    try {
-      if (!userId) {
-        alert("User not logged in");
-        return;
-      }
-
-      const response = await fetch(
-        `http://172.20.10.4:5001/profile/${userId}/cart`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(cartItem),
-        }
-      );
-
-      const text = await response.text();
-      if (response.ok) {
-        alert("Product added to cart!");
-      } else {
-        alert("Error: " + text);
-      }
-    } catch (err) {
-      console.error("Error adding to cart:", err);
-      alert("Something went wrong");
+  try {
+    if (!userId) {
+      alert("User not logged in");
+      return;
     }
+
+    // ✅ Add offer data if it exists and is still valid
+    let offerData = null;
+    if (
+      cartItem.offer &&
+      new Date(cartItem.offer.expiresAt) > new Date()
+    ) {
+      offerData = cartItem.offer;
+    }
+
+    const response = await fetch(
+      `http://172.20.10.4:5001/profile/${userId}/cart`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...cartItem,
+          offer: offerData, // ✅ include valid offer if it exists
+        }),
+      }
+    );
+
+    const text = await response.text();
+    if (response.ok) {
+      alert("Product added to cart!");
+    } else {
+      alert("Error: " + text);
+    }
+  } catch (err) {
+    console.error("Error adding to cart:", err);
+    alert("Something went wrong");
+  }
+};
+
+  const highlightMatch = (text, query) => {
+    if (!query) return text;
+
+    const regex = new RegExp(`(${query})`, "i");
+    const parts = text.split(regex);
+
+    return parts.map((part, index) =>
+      regex.test(part) ? (
+        <Text key={index} style={{ color: "#77BBA2", fontWeight: "bold" }}>
+          {part}
+        </Text>
+      ) : (
+        <Text key={index}>{part}</Text>
+      )
+    );
   };
 
   const filteredProducts = products.filter((item) => {
@@ -253,21 +301,19 @@ const MainScreen = () => {
           />
         )}
 
-        {searchText.length >= 1 && (
-          <View style={styles.suggestionsContainer}>
+        {(suggestions.length > 0 || isFetchingSuggestions) && (
+  <View style={styles.suggestionsContainer}>
             <ScrollView
               style={{ maxHeight: 250 }}
               keyboardShouldPersistTaps="handled"
               nestedScrollEnabled={true}
               showsVerticalScrollIndicator={true}
             >
-              {suggestions.length === 0 && !isFetchingSuggestions ? (
-                <View style={styles.noSuggestions}>
-                  <Text style={styles.noSuggestionsText}>
-                    No suggestions found
-                  </Text>
-                </View>
-              ) : (
+             {suggestions.length === 0 && !isFetchingSuggestions && searchText.length >= 2 ? (
+  <View style={styles.noSuggestions}>
+    <Text style={styles.noSuggestionsText}>No suggestions found</Text>
+  </View>
+) :(
                 suggestions.map((suggestion, index) => (
                   <TouchableOpacity
                     key={index}
@@ -275,9 +321,12 @@ const MainScreen = () => {
                     onPress={() => handleSuggestionPress(suggestion)}
                   >
                     <Text>
-                      {suggestion.type === "color"
-                        ? `${suggestion.colorName} ${suggestion.categoryName}`
-                        : suggestion.name}
+                      {highlightMatch(
+                        suggestion.type === "color"
+                          ? `${suggestion.colorName} ${suggestion.categoryName}`
+                          : suggestion.name,
+                        searchText
+                      )}
                     </Text>
                   </TouchableOpacity>
                 ))
@@ -324,16 +373,48 @@ const MainScreen = () => {
                     value={searchText}
                     onChangeText={fetchSuggestions}
                     onSubmitEditing={() => {
-                      if (searchText.trim().length > 0) {
-                        navigation.navigate("ResultOfSearch", {
-                          shopId: null,
-                          categoryName: searchText,
-                          userId: userId,
-                        });
-                        setSuggestions([]);
-                        Keyboard.dismiss();
-                      }
-                    }}
+  const trimmed = searchText.trim().toLowerCase();
+
+  // 1. تحقق من وجود محل بالاسم
+  const matchedShop = suggestions.find(
+    (s) => s.type === "shop" && s.name.toLowerCase() === trimmed
+  );
+
+  if (matchedShop) {
+    navigation.navigate("ShopProfile", {
+      shopId: matchedShop.shopId || null,
+      shopName: matchedShop.name,
+      userId,
+    });
+    setSuggestions([]);
+    Keyboard.dismiss();
+    return;
+  }
+
+  // 2. تحقق من وجود منتج بالاسم
+  const matchedProduct = products.find(
+    (p) => p.title.toLowerCase() === trimmed
+  );
+
+  if (matchedProduct) {
+    handleProductPress(matchedProduct);
+    setSuggestions([]);
+    Keyboard.dismiss();
+    return;
+  }
+
+  // 3. إذا لم يكن محل أو منتج، نفذ البحث العادي
+  if (trimmed.length > 0) {
+    navigation.navigate("ResultOfSearch", {
+      shopId: null,
+      categoryName: searchText,
+      userId: userId,
+    });
+    setSuggestions([]);
+    Keyboard.dismiss();
+  }
+}}
+
                     returnKeyType="search"
                   />
                 </View>
@@ -521,7 +602,6 @@ const MainScreen = () => {
           data={filteredProducts}
           numColumns={2}
           keyExtractor={(item, index) => item?._id || `fallback-${index}`}
-
           renderItem={({ item }) => (
             <TouchableOpacity
               onPress={() => handleProductPress(item)}
@@ -539,7 +619,11 @@ const MainScreen = () => {
                 <View style={{ alignItems: "center" }}>
                   <Text style={styles.originalPrice}>{item.price}ILS</Text>
                   <Text style={styles.discountedPrice}>
-                     {(item.price * (1 - item.offer.discountPercentage / 100)).toFixed(2)} ILS
+                    {(
+                      item.price *
+                      (1 - item.offer.discountPercentage / 100)
+                    ).toFixed(2)}{" "}
+                    ILS
                   </Text>
                 </View>
               ) : (
@@ -782,7 +866,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 2,
   },
-  
 });
 
 export default MainScreen;

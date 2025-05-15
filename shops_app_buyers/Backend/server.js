@@ -22,52 +22,64 @@ mongoose
   .then(() => console.log("✅ MongoDB Connected"))
   .catch((err) => console.log("❌ MongoDB Connection Error:", err));
 
-  const UserSchema = new mongoose.Schema({
-    fullName: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    location: { type: String, required: true },
-    PhoneNumber: {type:Number, required: true },
-    age: { type: Number, required: true, min: 15, max: 100 },
-    Gender: { type: String, required: true },
+const UserSchema = new mongoose.Schema({
+  fullName: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  location: { type: String, required: true },
+  PhoneNumber: { type: Number, required: true },
+  age: { type: Number, required: true, min: 15, max: 100 },
+  Gender: { type: String, required: true },
 
-    cart: [
-      {
-        shopId: { type: mongoose.Schema.Types.ObjectId, ref: "Shops", required: true },
-        productId: { type: String, required: true },
-        title: { type: String }, 
-        image: { type: String }, 
-        price: { type: Number }, 
-        selectedColor: String,
-        selectedSize: String,
-        quantity: { type: Number, default: 1 },
-        categoryName: String,
+  cart: [
+    {
+      shopId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Shops",
+        required: true,
       },
-    ],
-    favorites: [
-      {
-        productId: { type: String, required: true },
-        title: String,
-        image: String,
-        color: String,
-        price: Number,
-        shopId: { type: mongoose.Schema.Types.ObjectId, ref: "Shops" },
-        categoryName: String,
+      productId: { type: String, required: true },
+      title: { type: String },
+      image: { type: String },
+      price: { type: Number },
+      selectedColor: String,
+      selectedSize: String,
+      quantity: { type: Number, default: 1 },
+      categoryName: String,
+      offer: {
+        discountPercentage: Number,
+        expiresAt: Date,
       },
-    ],
-    viewedProducts: [
-      {
-        productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-        viewedAt: { type: Date, default: Date.now }
-      }
-    ],
-  });
-  
+    },
+  ],
+  favorites: [
+  {
+    productId: { type: String, required: true },
+    title: String,
+    image: String,
+    color: String,
+    price: Number,
+    shopId: { type: mongoose.Schema.Types.ObjectId, ref: "Shops" },
+    categoryName: String,
+    offer: {
+      discountPercentage: Number,
+      expiresAt: Date,
+    },
+  },
+],
 
-  const ShopSchema = new mongoose.Schema({
-    shopName: { type: String, required: true },
-    cover: String, 
-  });
+  viewedProducts: [
+    {
+      productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+      viewedAt: { type: Date, default: Date.now },
+    },
+  ],
+});
+
+const ShopSchema = new mongoose.Schema({
+  shopName: { type: String, required: true },
+  cover: String,
+});
 
 // Models
 const User = mongoose.model("Client", UserSchema);
@@ -92,7 +104,7 @@ const ProductSchema = new mongoose.Schema({
   shopId: { type: mongoose.Schema.Types.ObjectId, ref: "Shops" },
 });
 
-const Product = mongoose.model("Product", ProductSchema); 
+const Product = mongoose.model("Product", ProductSchema);
 
 // ✅ Login Route
 app.post("/login", async (req, res) => {
@@ -119,7 +131,6 @@ app.post("/login", async (req, res) => {
   }
 });
 
-
 // ✅ Reset Password
 app.post("/reset-password", async (req, res) => {
   try {
@@ -129,7 +140,11 @@ app.post("/reset-password", async (req, res) => {
     if (!user) return res.status(404).json({ message: "Email does not exist" });
 
     if (user.password === password)
-      return res.status(400).json({ message: "New password must be different from the old password." });
+      return res
+        .status(400)
+        .json({
+          message: "New password must be different from the old password.",
+        });
 
     if (password !== confirmPassword)
       return res.status(400).json({ message: "Passwords do not match" });
@@ -147,47 +162,90 @@ app.post("/reset-password", async (req, res) => {
 // ✅ Register User
 app.post("/UserAccount", async (req, res) => {
   try {
-    const { fullName, email, password, confirmPassword, location, age, PhoneNumber, Gender } = req.body;
+    const {
+      fullName,
+      email,
+      password,
+      confirmPassword,
+      location,
+      age,
+      PhoneNumber,
+      Gender,
+    } = req.body;
 
-    if (!fullName.trim() || !email.trim() || !password.trim() || !confirmPassword.trim() || !location.trim() || !age) {
-      return res.status(400).json({ error: { general: "All fields are required." } });
+    if (
+      !fullName.trim() ||
+      !email.trim() ||
+      !password.trim() ||
+      !confirmPassword.trim() ||
+      !location.trim() ||
+      !age
+    ) {
+      return res
+        .status(400)
+        .json({ error: { general: "All fields are required." } });
     }
 
     if (!/^[a-zA-Z\s]+$/.test(fullName)) {
-      return res.status(400).json({ error: { fullName: "Full name can only contain letters and spaces." } });
+      return res
+        .status(400)
+        .json({
+          error: { fullName: "Full name can only contain letters and spaces." },
+        });
     }
 
     if (!/^[a-zA-Z\s]+$/.test(location)) {
-      return res.status(400).json({ error: { location: "Location can only contain letters and spaces." } });
+      return res
+        .status(400)
+        .json({
+          error: { location: "Location can only contain letters and spaces." },
+        });
     }
 
     if (isNaN(age) || age < 15 || age > 100) {
-      return res.status(400).json({ error: { age: "Age must be between 15 and 100." } });
+      return res
+        .status(400)
+        .json({ error: { age: "Age must be between 15 and 100." } });
     }
 
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,14}$/;
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,14}$/;
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
         error: {
-          password: "Password must be 6-14 characters, include uppercase, lowercase, number, and symbol."
-        }
+          password:
+            "Password must be 6-14 characters, include uppercase, lowercase, number, and symbol.",
+        },
       });
     }
     if (!PhoneNumber || isNaN(PhoneNumber) || String(PhoneNumber).length < 6) {
-      return res.status(400).json({ error: { PhoneNumber: "Valid phone number is required." } });
-    }
-    
-    if (!Gender || !["male", "female", "Male", "Female"].includes(Gender)) {
-      return res.status(400).json({ error: { Gender: "Gender must be 'male' or 'female'." } });
-    }
-    
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ error: { email: "Email already in use." } });
+      return res
+        .status(400)
+        .json({ error: { PhoneNumber: "Valid phone number is required." } });
     }
 
-    const newUser = new User({ fullName, email, password, location, age: Number(age) ,PhoneNumber: Number(PhoneNumber),
-      Gender, });
+    if (!Gender || !["male", "female", "Male", "Female"].includes(Gender)) {
+      return res
+        .status(400)
+        .json({ error: { Gender: "Gender must be 'male' or 'female'." } });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ error: { email: "Email already in use." } });
+    }
+
+    const newUser = new User({
+      fullName,
+      email,
+      password,
+      location,
+      age: Number(age),
+      PhoneNumber: Number(PhoneNumber),
+      Gender,
+    });
     await newUser.save();
 
     res.status(201).json({ message: "User registered successfully!" });
@@ -196,7 +254,6 @@ app.post("/UserAccount", async (req, res) => {
     res.status(500).json({ error: { general: "Internal Server Error" } });
   }
 });
-
 
 app.post("/profile/:userId/cart", async (req, res) => {
   try {
@@ -210,20 +267,20 @@ app.post("/profile/:userId/cart", async (req, res) => {
       title,
       image,
       price,
+      offer,
     } = req.body;
 
     if (!shopId || !productId || !selectedColor || !selectedSize) {
       return res.status(400).json({
         message: "Missing field(s)",
-        details: { shopId, productId, selectedColor, selectedSize }
+        details: { shopId, productId, selectedColor, selectedSize },
       });
     }
-    
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Check if item already exists in cart
+    // ✅ Declare the variable here
     const existingItem = user.cart.find(
       (item) =>
         item.shopId.toString() === shopId &&
@@ -234,17 +291,27 @@ app.post("/profile/:userId/cart", async (req, res) => {
 
     if (existingItem) {
       existingItem.quantity += 1;
+
+      // ✅ Update the offer if it's new or updated
+      if (
+        offer &&
+        (!existingItem.offer ||
+          new Date(offer.expiresAt) > new Date(existingItem.offer?.expiresAt || 0))
+      ) {
+        existingItem.offer = offer;
+      }
     } else {
       user.cart.push({
         shopId,
-        shopName,  
+        shopName,
         productId,
         title,
         image,
         price,
         selectedColor,
         selectedSize,
-        quantity: 1, 
+        quantity: 1,
+        offer,
       });
     }
 
@@ -259,15 +326,55 @@ app.post("/profile/:userId/cart", async (req, res) => {
 
 app.get("/profile/:userId/cart", async (req, res) => {
   try {
+    // ✅ استخدمي populate للحصول على shopId ككائن يحتوي على shopName
     const user = await User.findById(req.params.userId).populate("cart.shopId");
+
     if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (!user.cart || !Array.isArray(user.cart)) user.cart = [];
+
+    const updatedCart = [];
+
+    for (const item of user.cart) {
+      const { shopId, productId } = item;
+
+      try {
+        const resProduct = await axios.get(
+          `http://172.20.10.4:5000/public/shop/${shopId._id}/product/${productId}`
+        );
+
+        const product = resProduct.data?.product;
+        if (!product) continue;
+
+        const productOffer = product.offer;
+
+        // ✅ تحقق من صلاحية العرض وأضفه للسلة إن وجد
+        if (
+          productOffer &&
+          productOffer.expiresAt &&
+          new Date(productOffer.expiresAt) > new Date()
+        ) {
+          item.offer = productOffer;
+        } else {
+          item.offer = null;
+        }
+
+        updatedCart.push(item);
+      } catch (err) {
+        console.warn("❌ Error fetching product for cart item:", productId);
+      }
+    }
+
+    user.cart = updatedCart;
+    await user.save();
 
     res.status(200).json(user.cart);
   } catch (error) {
-    console.error("Error fetching cart:", error);
+    console.error("❌ Error fetching cart:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
+
 app.delete("/profile/:userId/cart", async (req, res) => {
   try {
     const { userId } = req.params;
@@ -290,30 +397,7 @@ app.delete("/profile/:userId/cart", async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
-app.post("/user/:userId/favorites", async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { productId, title, image, color, price, shopId } = req.body;
 
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    const alreadyFavorite = user.favorites.find(
-      (item) => item.productId === productId
-    );
-    if (alreadyFavorite) {
-      return res.status(400).json({ message: "Product already in favorites" });
-    }
-
-    user.favorites.push({ productId, title, image, color, price, shopId });
-    await user.save();
-
-    res.status(200).json({ message: "Added to favorites", favorites: user.favorites });
-  } catch (error) {
-    console.error("Error adding to favorites:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-});
 app.delete("/user/:userId/favorites/:productId", async (req, res) => {
   try {
     const { userId, productId } = req.params;
@@ -326,25 +410,98 @@ app.delete("/user/:userId/favorites/:productId", async (req, res) => {
     );
 
     await user.save();
-    res.status(200).json({ message: "Removed from favorites", favorites: user.favorites });
+    res
+      .status(200)
+      .json({ message: "Removed from favorites", favorites: user.favorites });
   } catch (error) {
     console.error("Error removing from favorites:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
-app.get("/user/:userId/favorites", async (req, res) => {
+app.post("/user/:userId/favorites", async (req, res) => {
   try {
     const { userId } = req.params;
-
-    const user = await User.findById(userId).populate("favorites.shopId");
+    const { productId, title, image, color, price, shopId } = req.body;
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.status(200).json(user.favorites);
+    const alreadyFavorite = user.favorites.find(
+      (item) => item.productId === productId
+    );
+    if (alreadyFavorite) {
+      return res.status(400).json({ message: "Product already in favorites" });
+    }
+
+    let offer = null;
+    try {
+      const resProduct = await axios.get(
+        `http://172.20.10.4:5000/public/shop/${shopId}/product/${productId}`
+      );
+      const product = resProduct.data.product;
+      if (product?.offer && new Date(product.offer.expiresAt) > new Date()) {
+        offer = {
+          discountPercentage: product.offer.discountPercentage,
+          expiresAt: product.offer.expiresAt,
+        };
+      }
+    } catch (err) {
+      console.warn("⚠️ Failed to fetch offer while adding to favorites:", err);
+    }
+
+    user.favorites.push({ productId, title, image, color, price, shopId, offer });
+    await user.save();
+
+    res.status(200).json({ message: "Added to favorites", favorites: user.favorites });
   } catch (error) {
-    console.error("Error fetching favorites:", error);
+    console.error("Error adding to favorites:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
+
+
+app.get("/user/:userId/favorites", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    let updated = false;
+
+    for (let i = 0; i < user.favorites.length; i++) {
+      const fav = user.favorites[i];
+
+      try {
+        const resProduct = await axios.get(
+          `http://172.20.10.4:5000/public/shop/${fav.shopId}/product/${fav.productId}`
+        );
+        const product = resProduct.data.product;
+
+        if (product?.offer && new Date(product.offer.expiresAt) > new Date()) {
+          fav.offer = {
+            discountPercentage: product.offer.discountPercentage,
+            expiresAt: product.offer.expiresAt,
+          };
+          updated = true;
+        } else if (fav.offer) {
+          fav.offer = null;
+          updated = true;
+        }
+      } catch (err) {
+        console.warn("❌ Error fetching offer for:", fav.productId);
+      }
+    }
+
+    if (updated) await user.save();
+
+    res.status(200).json(user.favorites);
+  } catch (error) {
+    console.error("❌ Error fetching favorites:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+
+
 app.put("/profile/:userId/cart/update-quantity", async (req, res) => {
   try {
     const { userId } = req.params;
@@ -395,15 +552,19 @@ app.get("/personalized-products/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const favorites = await axios.get(`http://172.20.10.4:5001/user/${userId}/favorites`);
+    const favorites = await axios.get(
+      `http://172.20.10.4:5001/user/${userId}/favorites`
+    );
     const cart = await axios.get(`http://172.20.10.4:5001/user/${userId}/cart`);
-    
-    const favoriteProductIds = favorites.data.map(item => item.productId);
-    const cartProductIds = cart.data.map(item => item.productId);
 
-    const allInterestedProductIds = [...new Set([...favoriteProductIds, ...cartProductIds])];
+    const favoriteProductIds = favorites.data.map((item) => item.productId);
+    const cartProductIds = cart.data.map((item) => item.productId);
 
-    const gender = await AsyncStorage.getItem("interest_gender");  
+    const allInterestedProductIds = [
+      ...new Set([...favoriteProductIds, ...cartProductIds]),
+    ];
+
+    const gender = await AsyncStorage.getItem("interest_gender");
 
     const allProducts = await User.aggregate([
       { $unwind: "$categories" },
@@ -411,10 +572,16 @@ app.get("/personalized-products/:userId", async (req, res) => {
       {
         $match: {
           $or: [
-            { "categories.products._id": { $in: allInterestedProductIds.map(id => mongoose.Types.ObjectId(id)) } },
-            gender ? { "categories.products.genderTarget": gender } : {}
-          ]
-        }
+            {
+              "categories.products._id": {
+                $in: allInterestedProductIds.map((id) =>
+                  mongoose.Types.ObjectId(id)
+                ),
+              },
+            },
+            gender ? { "categories.products.genderTarget": gender } : {},
+          ],
+        },
       },
       {
         $project: {
@@ -423,18 +590,20 @@ app.get("/personalized-products/:userId", async (req, res) => {
           price: "$categories.products.price",
           MainImage: "$categories.products.MainImage",
           shopId: "$_id",
-        }
+        },
       },
-      { $sample: { size: 10 } }
+      { $sample: { size: 10 } },
     ]);
 
     res.json(allProducts);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server error fetching personalized products" });
+    res
+      .status(500)
+      .json({ message: "Server error fetching personalized products" });
   }
 });
-app.post('/user/:userId/viewed', async (req, res) => {
+app.post("/user/:userId/viewed", async (req, res) => {
   try {
     const { userId } = req.params;
     const { productId } = req.body;
@@ -459,7 +628,7 @@ app.post('/user/:userId/viewed', async (req, res) => {
   }
 });
 
-app.get('/user/:userId/personalized-products', async (req, res) => {
+app.get("/user/:userId/personalized-products", async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -468,12 +637,20 @@ app.get('/user/:userId/personalized-products', async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const favoriteCategories = user.favorites.map(fav => fav.categoryName).filter(Boolean);
-    const cartCategories = user.cart.map(item => item.categoryName).filter(Boolean);
+    const favoriteCategories = user.favorites
+      .map((fav) => fav.categoryName)
+      .filter(Boolean);
+    const cartCategories = user.cart
+      .map((item) => item.categoryName)
+      .filter(Boolean);
 
-    const viewedIds = user.viewedProducts.map(item => new mongoose.Types.ObjectId(item.productId));
+    const viewedIds = user.viewedProducts.map(
+      (item) => new mongoose.Types.ObjectId(item.productId)
+    );
 
-    const allCategories = [...new Set([...favoriteCategories, ...cartCategories])]; // بدون تكرار
+    const allCategories = [
+      ...new Set([...favoriteCategories, ...cartCategories]),
+    ]; // بدون تكرار
 
     const productMatchConditions = [];
 
@@ -500,9 +677,9 @@ app.get('/user/:userId/personalized-products', async (req, res) => {
           MainImage: 1,
           shopId: 1,
           categoryName: 1,
-        }
+        },
       },
-      { $sample: { size: 20 } } // اختيار عشوائي لو أردت
+      { $sample: { size: 20 } }, // اختيار عشوائي لو أردت
     ]);
 
     res.json(products);
@@ -511,7 +688,6 @@ app.get('/user/:userId/personalized-products', async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5001;
