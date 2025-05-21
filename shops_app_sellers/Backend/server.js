@@ -6,6 +6,8 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
+const Order = require("../models/Order");
+const Notification = require("../models/Notification");
 
 const app = express();
 app.use(cors());
@@ -26,7 +28,7 @@ mongoose
 // ======================
 // Schema
 // ======================
-const UserSchema = new mongoose.Schema({
+const shopSchema = new mongoose.Schema({
   shopName: { type: String, required: true },
   fullName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
@@ -65,7 +67,7 @@ const UserSchema = new mongoose.Schema({
   ],
 });
 
-const User = mongoose.model("Shops", UserSchema);
+const User = mongoose.model("Shops", shopSchema);
 
 // ======================
 // Image Upload Setup
@@ -204,6 +206,7 @@ app.post("/loginSeller", async (req, res) => {
     res.status(200).json({
       message: "Login successful",
       userId: user._id.toString(),
+      shopId: user._id.toString(),
     });
   } catch (err) {
     console.error(err);
@@ -688,7 +691,6 @@ app.get("/public/shop/:shopId/products", async (req, res) => {
 app.get("/public/shop/:shopId/product/:productId", async (req, res) => {
   try {
     const { shopId, productId } = req.params;
-    console.log("➡️ Getting product:", { shopId, productId });
 
     const shop = await User.findById(shopId);
     if (!shop) {
@@ -701,12 +703,10 @@ app.get("/public/shop/:shopId/product/:productId", async (req, res) => {
         (p) => p._id.toString() === productId
       );
       if (product) {
-        console.log("✅ Product found:", product.title);
         return res.json({ product, category: category.name });
       }
     }
 
-    console.warn("⚠️ Product not found:", productId);
     res.status(404).json({ message: "Product not found" });
   } catch (err) {
     console.error("🔥 Internal error:", err);
@@ -1061,6 +1061,131 @@ app.get("/public/search-category-products", async (req, res) => {
     res.status(500).json({ message: "Error fetching category products" });
   }
 });
+app.get("/shop/:shopId/orders", async (req, res) => {
+  try {
+    const { shopId } = req.params;
+
+    const orders = await Order.find({ shopId })
+      .sort({ createdAt: -1 }) // أحدث الطلبات أولًا
+      
+      .lean();
+
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error("❌ Error fetching shop orders:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+app.put("/orders/:orderId/status", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    const order = await Order.findOneAndUpdate(
+      { orderId },
+      { status },
+      { new: true }
+    );
+
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    res.json({ message: "Status updated", order });
+  } catch (err) {
+    console.error("❌ Error updating status:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+app.post("/notify-soldout", async (req, res) => {
+  try {
+    const { shopId, productId, color, size } = req.body;
+
+    const shop = await User.findById(shopId);
+    if (!shop) return res.status(404).json({ message: "Shop not found" });
+
+    let productTitle = "Unknown Product";
+
+    for (const category of shop.categories) {
+      const product = category.products.find(
+        (p) => p._id.toString() === productId
+      );
+      if (product) {
+        productTitle = product.title;
+        break;
+      }
+    }
+
+    const existingNotification = await Notification.findOne({
+      shopId,
+      productId,
+      color,
+      size,
+      isRead: false,
+    });
+
+    if (existingNotification) {
+      return res.status(200).json({ message: "Already notified" });
+    }
+
+    const notification = new Notification({
+      shopId,
+      productId,
+      color,
+      size,
+      productTitle, // 👈 أضف هذا الحقل في سكيمة Notification أيضًا
+    });
+
+    await notification.save();
+    res.status(201).json({ message: "Sold out notification created" });
+  } catch (err) {
+    console.error("❌ Error saving sold-out notification:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.get("/notifications/:shopId", async (req, res) => {
+  try {
+    const { shopId } = req.params;
+    const { onlyUnread } = req.query;
+
+    const filter = { shopId };
+    if (onlyUnread === "true") {
+      filter.isRead = false;
+    }
+
+    // ✅ هذه الإضافة هي السر: populate
+    const notifications = await Notification.find(filter)
+      .populate("productId", "title") // فقط نحتاج العنوان
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(notifications);
+  } catch (error) {
+    console.error("❌ Error fetching notifications:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.put("/notifications/:notificationId/read", async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+
+    const updated = await Notification.findByIdAndUpdate(
+      notificationId,
+      { isRead: true },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    res.json({ message: "Marked as read" });
+  } catch (err) {
+    console.error("❌ Error marking notification as read:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 
 // ======================
 // Start Server

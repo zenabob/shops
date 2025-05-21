@@ -3,7 +3,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
-
+const Order = require("../modals/Order");
+const { v4: uuidv4 } = require("uuid");
 const app = express();
 
 // Middleware
@@ -53,20 +54,20 @@ const UserSchema = new mongoose.Schema({
     },
   ],
   favorites: [
-  {
-    productId: { type: String, required: true },
-    title: String,
-    image: String,
-    color: String,
-    price: Number,
-    shopId: { type: mongoose.Schema.Types.ObjectId, ref: "Shops" },
-    categoryName: String,
-    offer: {
-      discountPercentage: Number,
-      expiresAt: Date,
+    {
+      productId: { type: String, required: true },
+      title: String,
+      image: String,
+      color: String,
+      price: Number,
+      shopId: { type: mongoose.Schema.Types.ObjectId, ref: "Shops" },
+      categoryName: String,
+      offer: {
+        discountPercentage: Number,
+        expiresAt: Date,
+      },
     },
-  },
-],
+  ],
 
   viewedProducts: [
     {
@@ -78,7 +79,39 @@ const UserSchema = new mongoose.Schema({
 
 const ShopSchema = new mongoose.Schema({
   shopName: { type: String, required: true },
+  fullName: String,
+  email: String,
+  password: String,
+  location: String,
+  phoneNumber: String,
+  logo: String,
   cover: String,
+  categories: [
+    {
+      name: String,
+      products: [
+        {
+          title: String,
+          price: Number,
+          MainImage: String,
+          categoryName: String,
+          colors: [
+            {
+              name: String,
+              previewImage: String,
+              images: [String],
+              sizes: [
+                {
+                  size: String,
+                  stock: Number,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ],
 });
 
 // Models
@@ -140,11 +173,9 @@ app.post("/reset-password", async (req, res) => {
     if (!user) return res.status(404).json({ message: "Email does not exist" });
 
     if (user.password === password)
-      return res
-        .status(400)
-        .json({
-          message: "New password must be different from the old password.",
-        });
+      return res.status(400).json({
+        message: "New password must be different from the old password.",
+      });
 
     if (password !== confirmPassword)
       return res.status(400).json({ message: "Passwords do not match" });
@@ -187,19 +218,15 @@ app.post("/UserAccount", async (req, res) => {
     }
 
     if (!/^[a-zA-Z\s]+$/.test(fullName)) {
-      return res
-        .status(400)
-        .json({
-          error: { fullName: "Full name can only contain letters and spaces." },
-        });
+      return res.status(400).json({
+        error: { fullName: "Full name can only contain letters and spaces." },
+      });
     }
 
     if (!/^[a-zA-Z\s]+$/.test(location)) {
-      return res
-        .status(400)
-        .json({
-          error: { location: "Location can only contain letters and spaces." },
-        });
+      return res.status(400).json({
+        error: { location: "Location can only contain letters and spaces." },
+      });
     }
 
     if (isNaN(age) || age < 15 || age > 100) {
@@ -296,7 +323,8 @@ app.post("/profile/:userId/cart", async (req, res) => {
       if (
         offer &&
         (!existingItem.offer ||
-          new Date(offer.expiresAt) > new Date(existingItem.offer?.expiresAt || 0))
+          new Date(offer.expiresAt) >
+            new Date(existingItem.offer?.expiresAt || 0))
       ) {
         existingItem.offer = offer;
       }
@@ -322,7 +350,6 @@ app.post("/profile/:userId/cart", async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
-
 
 app.get("/profile/:userId/cart", async (req, res) => {
   try {
@@ -448,16 +475,25 @@ app.post("/user/:userId/favorites", async (req, res) => {
       console.warn("⚠️ Failed to fetch offer while adding to favorites:", err);
     }
 
-    user.favorites.push({ productId, title, image, color, price, shopId, offer });
+    user.favorites.push({
+      productId,
+      title,
+      image,
+      color,
+      price,
+      shopId,
+      offer,
+    });
     await user.save();
 
-    res.status(200).json({ message: "Added to favorites", favorites: user.favorites });
+    res
+      .status(200)
+      .json({ message: "Added to favorites", favorites: user.favorites });
   } catch (error) {
     console.error("Error adding to favorites:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
-
 
 app.get("/user/:userId/favorites", async (req, res) => {
   try {
@@ -499,8 +535,6 @@ app.get("/user/:userId/favorites", async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
-
-
 
 app.put("/profile/:userId/cart/update-quantity", async (req, res) => {
   try {
@@ -686,6 +720,204 @@ app.get("/user/:userId/personalized-products", async (req, res) => {
   } catch (err) {
     console.error("❌ Error fetching personalized products:", err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+app.post("/orders/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { location, shippingCost } = req.body;
+
+    const user = await User.findById(userId).populate("cart.shopId");
+    if (!user || !user.cart || user.cart.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "Cart is empty or user not found." });
+    }
+
+    const failedItems = [];
+
+    for (let item of user.cart) {
+      const productRes = await axios.get(
+        `http://172.20.10.4:5000/public/shop/${item.shopId._id}/product/${item.productId}`
+      );
+
+      const product = productRes.data.product;
+      const color = product.colors.find((c) => c.name === item.selectedColor);
+      const size = color?.sizes.find((s) => s.size === item.selectedSize);
+
+      if (!size || size.stock < item.quantity) {
+        failedItems.push({
+          title: item.title,
+          color: item.selectedColor,
+          size: item.selectedSize,
+          requested: item.quantity,
+          available: size ? size.stock : 0,
+        });
+      }
+    }
+
+    if (failedItems.length > 0) {
+      return res.status(409).json({
+        message: "Some items in the cart are no longer available.",
+        failedItems,
+      });
+    }
+
+    const orderId = uuidv4();
+
+    const newOrder = new Order({
+  orderId,
+  shopId: null,
+  userId,
+  userName: user.fullName,
+  userPhone: user.PhoneNumber,
+  userLocation: location,
+  totalPrice: 0,
+  products: user.cart
+    .filter((item) => item.shopId)
+    .map((item) => ({
+      shopId:
+        typeof item.shopId === "object" && item.shopId !== null
+          ? item.shopId._id?.toString?.() || item.shopId.toString?.()
+          : item.shopId?.toString?.(),
+      productId: item.productId,
+      title: item.title,
+      image: item.image,
+      price: item.price,
+      selectedColor: item.selectedColor,
+      selectedSize: item.selectedSize,
+      quantity: item.quantity,
+      categoryName: item.categoryName,
+      offer: item.offer,
+    })),
+  status: "Pending",
+  createdAt: new Date(),
+});
+
+    let total = 0;
+
+    for (let item of user.cart) {
+      const shop = await Shop.findById(item.shopId._id);
+
+      const product = shop.categories
+        ?.flatMap((cat) => cat.products)
+        ?.find((prod) => prod._id.toString() === item.productId);
+
+      if (!product) {
+        console.warn(
+          `❌ Product not found in shop ${shop._id} for productId ${item.productId}`
+        );
+        continue;
+      }
+
+      const color = product.colors.find((c) => c.name === item.selectedColor);
+      const size = color?.sizes.find((s) => s.size === item.selectedSize);
+
+      if (size && size.stock >= item.quantity) {
+        size.stock -= item.quantity;
+        total += item.quantity * item.price;
+        await shop.save();
+      }
+    }
+
+    newOrder.totalPrice = total + shippingCost;
+    await newOrder.save();
+
+    user.cart = [];
+    await user.save();
+
+    res.status(200).json({ message: "Order placed successfully", orderId });
+
+    // ✅ بعد إرسال الرد، نرسل إشعارات للبائع إذا منتج أصبح سولد آوت
+    try {
+      for (const item of newOrder.products) {
+        let shopId;
+
+        if (item.shopId && typeof item.shopId === "object" && item.shopId._id) {
+          shopId = item.shopId._id.toString();
+        } else if (
+          typeof item.shopId === "string" ||
+          typeof item.shopId === "number"
+        ) {
+          shopId = item.shopId.toString();
+        } else {
+          console.warn("❌ Invalid shopId structure in item:", item);
+          continue;
+        }
+
+        const shop = await Shop.findById(shopId);
+        if (!shop) {
+          console.warn("❌ Shop not found:", shopId);
+          continue;
+        }
+
+        let foundProduct = null;
+
+        // البحث داخل جميع الفئات
+        for (let category of shop.categories) {
+          for (let product of category.products) {
+            // ✅ تأكد من مقارنة الأنواع بشكل صحيح
+            if (
+              product._id.toString() === item.productId.toString() &&
+              product.colors?.some((c) => c.name === item.selectedColor)
+            ) {
+              foundProduct = product;
+              break;
+            }
+          }
+          if (foundProduct) break;
+        }
+
+        if (!foundProduct) {
+          console.warn(
+            "❌ Product not found for notification:",
+            item.productId
+          );
+          continue;
+        }
+
+        const color = foundProduct.colors.find(
+          (c) => c.name === item.selectedColor
+        );
+        if (!color) {
+          console.warn("❌ Color not found:", item.selectedColor);
+          continue;
+        }
+
+        const size = color.sizes.find((s) => s.size === item.selectedSize);
+        if (!size) {
+          console.warn("❌ Size not found:", item.selectedSize);
+          continue;
+        }
+
+        // ✅ إذا المخزون صفر، أرسل إشعار
+        if (size.stock === 0) {
+          console.log("🟥 Sending notification for sold out:", {
+            shopId,
+            productId: foundProduct._id.toString(), // تأكد من إرساله كـ String
+            color: item.selectedColor,
+            size: item.selectedSize,
+          });
+
+          await axios.post("http://172.20.10.4:5000/notify-soldout", {
+            shopId: shopId.toString(),
+            productId: foundProduct._id.toString(),
+            color: item.selectedColor,
+            size: item.selectedSize,
+          });
+        }
+      }
+    } catch (notifyErr) {
+      console.warn(
+        "⚠️ Failed to send sold-out notifications:",
+        notifyErr.message
+      );
+    }
+  } catch (error) {
+    console.error("❌ Order processing error:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Internal server error" });
+    }
   }
 });
 

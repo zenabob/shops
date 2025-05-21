@@ -20,38 +20,37 @@ const ProductDetails = ({
   setSelectedColorName,
   setSelectedMainImage,
   setSelectedColorImages,
-  selectedSize,        
-  setSelectedSize,     
+  selectedSize,
+  setSelectedSize,
   onAddToCart,
   shopId,
   userId,
   onFavoriteToggle,
 }) => {
   const [isFavorite, setIsFavorite] = useState(false);
-  const [tick, setTick] = useState(0); 
+  const [tick, setTick] = useState(0);
 
-const hasValidOffer =
-  selectedProductDetails?.offer &&
-  new Date(selectedProductDetails.offer.expiresAt) > new Date();
+  const hasValidOffer =
+    selectedProductDetails?.offer &&
+    new Date(selectedProductDetails.offer.expiresAt) > new Date();
 
-const discountedPrice = hasValidOffer
-  ? (
-      selectedProductDetails.price *
-      (1 - selectedProductDetails.offer.discountPercentage / 100)
-    ).toFixed(2)
-  : null;
+  const discountedPrice = hasValidOffer
+    ? (
+        selectedProductDetails.price *
+        (1 - selectedProductDetails.offer.discountPercentage / 100)
+      ).toFixed(2)
+    : null;
 
   const sizes =
     selectedProductDetails?.colors?.find((c) => c.name === selectedColorName)
       ?.sizes || [];
-useEffect(() => {
-  const interval = setInterval(() => {
-    setTick((prev) => prev + 1); // trigger re-render
-  }, 10000); // every 10 seconds
 
-  return () => clearInterval(interval); // cleanup
-}, []);
-
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTick((prev) => prev + 1);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const checkFavorite = async () => {
@@ -71,6 +70,7 @@ useEffect(() => {
 
     checkFavorite();
   }, [selectedProductDetails, userId]);
+
   useEffect(() => {
     const registerView = async () => {
       if (userId && selectedProductDetails?._id) {
@@ -78,67 +78,63 @@ useEffect(() => {
           await axios.post(`http://172.20.10.4:5001/user/${userId}/viewed`, {
             productId: selectedProductDetails._id,
           });
-          console.log("✅ View registered for product:", selectedProductDetails._id);
         } catch (error) {
           console.error("❌ Error registering view:", error);
         }
       }
     };
-  
+
     registerView();
   }, [selectedProductDetails, userId]);
-  
-  // ✅ Toggle Favorite
+
   const toggleFavorite = async () => {
-  if (!selectedProductDetails || !userId) return;
+    if (!selectedProductDetails || !userId) return;
 
-  try {
-    if (isFavorite) {
-      await axios.delete(
-        `http://172.20.10.4:5001/user/${userId}/favorites/${selectedProductDetails._id}`
-      );
-      setIsFavorite(false);
-      if (onFavoriteToggle) {
-        onFavoriteToggle(selectedProductDetails._id, false);
-      }
-    } else {
-      // ✅ نتحقق هنا مباشرة من العرض الفعلي
-      let offer = null;
-      if (
-        selectedProductDetails.offer &&
-        new Date(selectedProductDetails.offer.expiresAt) > new Date()
-      ) {
-        offer = {
-          discountPercentage: selectedProductDetails.offer.discountPercentage,
-          expiresAt: selectedProductDetails.offer.expiresAt,
+    try {
+      if (isFavorite) {
+        await axios.delete(
+          `http://172.20.10.4:5001/user/${userId}/favorites/${selectedProductDetails._id}`
+        );
+        setIsFavorite(false);
+        if (onFavoriteToggle) {
+          onFavoriteToggle(selectedProductDetails._id, false);
+        }
+      } else {
+        let offer = null;
+        if (
+          selectedProductDetails.offer &&
+          new Date(selectedProductDetails.offer.expiresAt) > new Date()
+        ) {
+          offer = {
+            discountPercentage: selectedProductDetails.offer.discountPercentage,
+            expiresAt: selectedProductDetails.offer.expiresAt,
+          };
+        }
+
+        const favoriteItem = {
+          productId: selectedProductDetails._id,
+          title: selectedProductDetails.title,
+          image: selectedMainImage,
+          color: selectedColorName,
+          price: selectedProductDetails.price,
+          shopId: typeof shopId === "object" ? shopId._id : shopId,
+          offer,
         };
-      }
 
-      const favoriteItem = {
-        productId: selectedProductDetails._id,
-        title: selectedProductDetails.title,
-        image: selectedMainImage,
-        color: selectedColorName,
-        price: selectedProductDetails.price,
-        shopId: typeof shopId === "object" ? shopId._id : shopId,
-        offer, // ✅ سيتم تمرير العرض الصحيح إن وجد
-      };
-
-      await axios.post(
-        `http://172.20.10.4:5001/user/${userId}/favorites`,
-        favoriteItem
-      );
-      setIsFavorite(true);
-      if (onFavoriteToggle) {
-        onFavoriteToggle(selectedProductDetails._id, true);
+        await axios.post(
+          `http://172.20.10.4:5001/user/${userId}/favorites`,
+          favoriteItem
+        );
+        setIsFavorite(true);
+        if (onFavoriteToggle) {
+          onFavoriteToggle(selectedProductDetails._id, true);
+        }
       }
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
     }
-  } catch (error) {
-    console.error("Error toggling favorite:", error);
-  }
-};
+  };
 
-  
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.modalOverlay}>
@@ -164,17 +160,29 @@ useEffect(() => {
               />
             )}
 
-            <Text
-              style={styles.productName}
-              numberOfLines={9}
-              adjustsFontSizeToFit
-            >
+            <Text style={styles.productName} numberOfLines={9}>
               {selectedProductDetails?.title || "No Title"}
             </Text>
 
             <Text style={{ fontWeight: "bold", fontSize: 15, marginTop: 10 }}>
               Color: {selectedColorName}
             </Text>
+            {(() => {
+              const selectedColor = selectedProductDetails?.colors?.find(
+                (c) => c.name === selectedColorName
+              );
+              const isSelectedColorSoldOut =
+                Array.isArray(selectedColor?.sizes) &&
+                selectedColor.sizes.length > 0 &&
+                selectedColor.sizes.every((s) => s.stock === 0);
+
+              return isSelectedColorSoldOut ? (
+                <Text style={{ color: "red", fontSize: 14, marginTop: 4 }}>
+                  Sold Out!
+                </Text>
+              ) : null;
+            })()}
+
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -191,6 +199,7 @@ useEffect(() => {
                         c.images?.[0] ||
                         selectedProductDetails.MainImage
                     );
+                    setSelectedSize(null);
                   }}
                 >
                   <Image
@@ -200,22 +209,20 @@ useEffect(() => {
                 </TouchableOpacity>
               ))}
             </ScrollView>
+
             <Text style={styles.productPrice}>
               {hasValidOffer ? (
-  <View style={{ alignItems: "flex-start", marginTop: 10 }}>
-    <Text style={styles.originalPrice}>
-      ILS {selectedProductDetails.price}
-    </Text>
-    <Text style={styles.discountedPrice}>ILS {discountedPrice}</Text>
-  </View>
-) : (
-  <Text style={styles.productPrice}>
-    {selectedProductDetails?.price
-      ? `${selectedProductDetails.price} ILS`
-      : "No Price"}
-  </Text>
-)}
-
+                <View style={{ alignItems: "flex-start", marginTop: 10 }}>
+                  <Text style={styles.originalPrice}>
+                    ILS {selectedProductDetails.price}
+                  </Text>
+                  <Text style={styles.discountedPrice}>
+                    ILS {discountedPrice}
+                  </Text>
+                </View>
+              ) : (
+                `${selectedProductDetails?.price || "No Price"} ILS`
+              )}
             </Text>
 
             <Text style={{ fontWeight: "bold", fontSize: 15, marginTop: 10 }}>
@@ -226,8 +233,10 @@ useEffect(() => {
                 sizes.map((s, i) => (
                   <TouchableOpacity
                     key={i}
+                    disabled={s.stock === 0}
                     style={[
                       styles.sizeBox,
+                      s.stock === 0 && { backgroundColor: "#ccc" },
                       selectedSize === s.size && styles.selectedSizeBox,
                     ]}
                     onPress={() => setSelectedSize(s.size)}
@@ -235,6 +244,10 @@ useEffect(() => {
                     <Text
                       style={[
                         styles.sizeText,
+                        s.stock === 0 && {
+                          textDecorationLine: "line-through",
+                          color: "#777",
+                        },
                         selectedSize === s.size && styles.selectedSizeText,
                       ]}
                     >
@@ -251,7 +264,11 @@ useEffect(() => {
               <TouchableOpacity
                 style={styles.addToCartButton}
                 onPress={() => {
-                  if (!selectedProductDetails || !selectedColorName || !selectedSize) {
+                  if (
+                    !selectedProductDetails ||
+                    !selectedColorName ||
+                    !selectedSize
+                  ) {
                     alert("Please select product, color, and size.");
                     return;
                   }
@@ -263,24 +280,28 @@ useEffect(() => {
                   const selectedSizeObject = selectedColor?.sizes?.find(
                     (s) => s.size === selectedSize
                   );
+                  if (!selectedSizeObject || selectedSizeObject.stock === 0) {
+                    alert("This size is out of stock.");
+                    return;
+                  }
 
                   const cartItem = {
-  productId: selectedProductDetails._id,
-  title: selectedProductDetails.title,
-  image: selectedMainImage,
-  price: selectedProductDetails.price,
-  selectedColor: selectedColorName,
-  selectedSize: selectedSize,
-  quantity: 1,
-  shopId: typeof shopId === "object" ? shopId._id : shopId,
-  offer:
-    selectedProductDetails.offer &&
-    new Date(selectedProductDetails.offer.expiresAt) > new Date()
-      ? selectedProductDetails.offer
-      : null,
-};
-                  
-                  
+                    productId: selectedProductDetails._id,
+                    title: selectedProductDetails.title,
+                    image: selectedMainImage,
+                    price: selectedProductDetails.price,
+                    selectedColor: selectedColorName,
+                    selectedSize: selectedSize,
+                    quantity: 1,
+                    shopId: typeof shopId === "object" ? shopId._id : shopId,
+                    offer:
+                      selectedProductDetails.offer &&
+                      new Date(selectedProductDetails.offer.expiresAt) >
+                        new Date()
+                        ? selectedProductDetails.offer
+                        : null,
+                  };
+
                   onAddToCart(cartItem);
                   onClose();
                 }}
@@ -297,9 +318,8 @@ useEffect(() => {
                   }
                   style={[
                     styles.heartIcon,
-                    isFavorite ? styles.heartFavorite : styles.heartNotFavorite
+                    isFavorite ? styles.heartFavorite : styles.heartNotFavorite,
                   ]}
-                 
                 />
               </TouchableOpacity>
             </View>
@@ -431,27 +451,27 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   heartFavorite: {
-    width: 35, 
-    height: 35, 
-    zIndex: 1000 
+    width: 35,
+    height: 35,
+    zIndex: 1000,
   },
-  
   heartNotFavorite: {
-    width: 28, height: 25, zIndex: 1000 
+    width: 28,
+    height: 25,
+    zIndex: 1000,
   },
   originalPrice: {
-  textDecorationLine: "line-through",
-  color: "#888",
-  fontSize: 14,
-  fontWeight: "500",
-  marginBottom: 2,
-},
-discountedPrice: {
-  color: "#e53935",
-  fontSize: 16,
-  fontWeight: "bold",
-},
-
+    textDecorationLine: "line-through",
+    color: "#888",
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 2,
+  },
+  discountedPrice: {
+    color: "#e53935",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
 });
 
 export default ProductDetails;

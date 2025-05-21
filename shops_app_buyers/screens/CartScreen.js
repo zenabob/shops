@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import uuid from "react-native-uuid";
 import {
   View,
   Text,
@@ -7,11 +8,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Animated,
 } from "react-native";
 import axios from "axios";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { Swipeable, RectButton } from "react-native-gesture-handler";
-import { Animated } from "react-native";
 
 const CartScreen = () => {
   const route = useRoute();
@@ -19,6 +20,7 @@ const CartScreen = () => {
   const { userId } = route.params || {};
   const [cart, setCart] = useState([]);
   const [favorites, setFavorites] = useState([]);
+  const [soldOutItems, setSoldOutItems] = useState([]);
   const swipeableRefs = useRef({});
 
   useEffect(() => {
@@ -34,8 +36,32 @@ const CartScreen = () => {
 
   const fetchCart = async () => {
     try {
-      const res = await axios.get(`http://172.20.10.4:5001/profile/${userId}/cart`);
-      setCart(res.data);
+      const res = await axios.get(
+        `http://172.20.10.4:5001/profile/${userId}/cart`
+      );
+      const freshCart = res.data;
+
+      const available = [];
+      const soldOut = [];
+
+      for (let item of freshCart) {
+        const resProduct = await axios.get(
+          `http://172.20.10.4:5000/public/shop/${item.shopId._id}/product/${item.productId}`
+        );
+
+        const product = resProduct.data.product;
+        const color = product.colors.find((c) => c.name === item.selectedColor);
+        const size = color?.sizes.find((s) => s.size === item.selectedSize);
+
+        if (!size || size.stock === 0) {
+          soldOut.push(item);
+        } else {
+          available.push(item);
+        }
+      }
+
+      setCart(available);
+      setSoldOutItems(soldOut);
     } catch (err) {
       console.error("Failed to fetch cart:", err);
     }
@@ -43,7 +69,9 @@ const CartScreen = () => {
 
   const fetchFavorites = async () => {
     try {
-      const res = await axios.get(`http://172.20.10.4:5001/user/${userId}/favorites`);
+      const res = await axios.get(
+        `http://172.20.10.4:5001/user/${userId}/favorites`
+      );
       setFavorites(res.data);
     } catch (err) {
       console.error("Failed to fetch favorites:", err);
@@ -107,7 +135,33 @@ const CartScreen = () => {
     }
   };
 
-  // ✅ Update refs whenever cart changes
+  const calculateTotals = () => {
+    let total = 0;
+    let saved = 0;
+
+    cart.forEach((item) => {
+      const quantity = item.quantity;
+
+      const originalPrice =
+        item.offer && item.offer.discountPercentage
+          ? +(item.price / (1 - item.offer.discountPercentage / 100)).toFixed(2)
+          : item.price;
+
+      const actualPrice = item.price;
+
+      if (item.offer && new Date(item.offer.expiresAt) > new Date()) {
+        saved += (originalPrice - actualPrice) * quantity;
+      }
+
+      total += actualPrice * quantity;
+    });
+
+    return {
+      total: total.toFixed(2),
+      saved: saved.toFixed(2),
+    };
+  };
+
   useEffect(() => {
     const refs = {};
     cart.forEach((item) => {
@@ -133,7 +187,11 @@ const CartScreen = () => {
           {
             text: "Delete",
             onPress: () =>
-              deleteFromCart(product.productId, product.selectedColor, product.selectedSize),
+              deleteFromCart(
+                product.productId,
+                product.selectedColor,
+                product.selectedSize
+              ),
             style: "destructive",
           },
         ]
@@ -150,27 +208,172 @@ const CartScreen = () => {
     );
   };
 
-const groupedByShop = cart.reduce((acc, item) => {
-  const shop = item.shopId; // ← لأنه بعد populate صار يحتوي على shopName وغيرها
-  const shopKey = shop?._id?.toString() || item.shopId?.toString();
+  const handleCheckout = async () => {
+    const { total } = calculateTotals();
 
-  if (!acc[shopKey]) {
-    acc[shopKey] = {
-      shopId: shop._id,
-      shopName: shop.shopName || "Shop",
-      shopLogo: shop.logo || null,
-      shopCover: shop.cover || null,
-      products: [],
-    };
-  }
+    if (parseFloat(total) === 0) {
+      Alert.alert("Cart is empty", "You cannot checkout with an empty cart.");
+      return;
+    }
 
-  acc[shopKey].products.push(item);
-  return acc;
-}, {});
+    try {
+      let changesMade = false;
+      let message = "";
+
+      for (const item of cart) {
+        const res = await axios.get(
+          `http://172.20.10.4:5000/public/shop/${item.shopId._id}/product/${item.productId}`
+        );
+
+        const productData = res.data.product;
+        const selectedColor = productData.colors.find(
+          (c) => c.name === item.selectedColor
+        );
+        const selectedSize = selectedColor?.sizes.find(
+          (s) => s.size === item.selectedSize
+        );
+
+        const availableStock = selectedSize ? selectedSize.stock : 0;
+
+       if (!selectedSize || availableStock === 0) {
+  console.log("🟥 Sold out detected:", item);
+
+  await axios.delete(`http://172.20.10.4:5001/profile/${userId}/cart`, {
+    data: {
+      productId: item.productId,
+      selectedColor: item.selectedColor,
+      selectedSize: item.selectedSize,
+    },
+  });
+
+  message += `• ${item.title} (Color: ${item.selectedColor}, Size: ${item.selectedSize}) was removed – out of stock.\n\n`;
+  changesMade = true;
+}
+else if (item.quantity > availableStock) {
+          await axios.put(
+            `http://172.20.10.4:5001/profile/${userId}/cart/update-quantity`,
+            {
+              productId: item.productId,
+              selectedColor: item.selectedColor,
+              selectedSize: item.selectedSize,
+              quantity: availableStock,
+            }
+          );
+
+          message += `• ${item.title} (Color: ${item.selectedColor}, Size: ${item.selectedSize})\n  Requested quantity (${item.quantity}) is not available.\n  Only ${availableStock} left in stock. We have updated your cart to reflect the available quantity.\n\n`;
 
 
+          changesMade = true;
+        }
+      }
+
+      if (changesMade) {
+        fetchCart();
+        Alert.alert(
+          "Cart Updated",
+          `We made some updates to your cart:\n\n${message}`
+        );
+        return; 
+      }
+
+   
+      Alert.alert(
+        "Select delivery area",
+        "Please choose your location",
+        [
+          {
+            text: "Jerusalem",
+            onPress: () => confirmLocation("Jerusalem", 30),
+          },
+          { text: "Israel", onPress: () => confirmLocation("Israel", 70) },
+          {
+            text: "West Bank",
+            onPress: () => confirmLocation("West Bank", 20),
+          },
+          { text: "Cancel", style: "cancel" },
+        ],
+        { cancelable: true }
+      );
+    } catch (error) {
+      console.error("❌ Error validating cart stock:", error);
+      Alert.alert("Error", "Could not verify product availability.");
+    }
+  };
+
+  const confirmLocation = async (location, shippingCost) => {
+    const { total } = calculateTotals();
+    const finalAmount = (parseFloat(total) + shippingCost).toFixed(2);
+
+    Alert.alert(
+      "Confirm your order",
+      `Do you want to confirm your order to ${location}?\n\nTotal price = ₪${finalAmount}`,
+      [
+        {
+          text: "Yes",
+          onPress: async () => {
+            try {
+              const res = await axios.post(
+                `http://172.20.10.4:5001/orders/${userId}`,
+                {
+                  location,
+                  shippingCost,
+                }
+              );
+
+              Alert.alert("Order Confirmed", "Your order has been confirmed.");
+              fetchCart(); // clear the cart
+            } catch (error) {
+              const status = error.response?.status;
+              const data = error.response?.data;
+
+              if (status === 409 && data?.failedItems?.length > 0) {
+                const alertMessage = data.failedItems
+                  .map(
+                    (item) =>
+                      `• ${item.title} (Color: ${item.color}, Size: ${item.size})\n  Requested: ${item.requested}, Available: ${item.available}`
+                  )
+                  .join("\n\n");
+
+                Alert.alert(
+                  "Stock issue",
+                  `Please review your cart:\n\n${alertMessage}`
+                );
+              } else {
+                console.error("❌ Order error:", error);
+                Alert.alert(
+                  "Error",
+                  "Failed to confirm the order. Please try again."
+                );
+              }
+            }
+          },
+        }, // 👈 DON'T forget this comma here
+        {
+          text: "No",
+          style: "cancel",
+        },
+      ]
+    );
+  };
+
+  const groupedByShop = cart.reduce((acc, item) => {
+    const shop = item.shopId;
+    const shopKey = shop?._id?.toString() || item.shopId?.toString();
+
+    if (!acc[shopKey]) {
+      acc[shopKey] = {
+        shopId: shop._id,
+        shopName: shop.shopName || "Shop",
+        products: [],
+      };
+    }
+
+    acc[shopKey].products.push(item);
+    return acc;
+  }, {});
 
   const shopGroups = Object.values(groupedByShop);
+  const { total, saved } = calculateTotals();
 
   return (
     <View style={{ flex: 1 }}>
@@ -187,61 +390,68 @@ const groupedByShop = cart.reduce((acc, item) => {
       <FlatList
         data={shopGroups}
         keyExtractor={(item, index) =>
-          typeof item.shopId === "object" && item.shopId._id
-            ? item.shopId._id.toString()
-            : item.shopId?.toString() || `fallback-${index}`
+          item.shopId.toString() || `shop-${index}`
         }
         renderItem={({ item }) => (
           <View style={styles.shopSection}>
-            <View style={styles.shopHeader}>
-  <Image source={require("../assets/img/store.png")} style={styles.shopIcon} />
-  <Text style={styles.shopName}>{item.shopName}</Text>
-</View>
-
+            <Text style={styles.shopName}>{item.shopName}</Text>
 
             {item.products.map((product) => {
               const key = `${product.productId}_${product.selectedColor}_${product.selectedSize}`;
-              const isFav = favorites.some((fav) => fav.productId === product.productId);
+              const isFav = favorites.some(
+                (fav) => fav.productId === product.productId
+              );
 
               return (
                 <Swipeable
                   key={key}
                   ref={swipeableRefs.current[key]}
                   onSwipeableWillOpen={() => {
-                    Object.entries(swipeableRefs.current).forEach(([k, refObj]) => {
-                      if (k !== key && refObj?.current) {
-                        refObj.current.close();
+                    Object.entries(swipeableRefs.current).forEach(
+                      ([k, refObj]) => {
+                        if (k !== key && refObj?.current) {
+                          refObj.current.close();
+                        }
                       }
-                    });
+                    );
                   }}
                   renderRightActions={(progress, dragX) =>
                     renderRightActions(progress, dragX, product)
                   }
-                  rightThreshold={20}
-                  overshootRight={false}
-                  friction={2}
                 >
                   <View style={styles.productCard}>
                     {product.image && (
-                      <Image source={{ uri: product.image }} style={styles.productImage} />
+                      <Image
+                        source={{ uri: product.image }}
+                        style={styles.productImage}
+                      />
                     )}
                     <View style={styles.productDetails}>
-                      <Text style={styles.title}>{product.title || "No title"}</Text>
+                      <Text style={styles.title}>
+                        {product.title || "No title"}
+                      </Text>
 
-  {product.offer && new Date(product.offer.expiresAt) > new Date() ? (
-  <View>
-    <Text style={styles.originalPrice}>
-      {(product.price / (1 - product.offer.discountPercentage / 100)).toFixed(2)} ILS 
-    </Text>
-    <Text style={styles.discountedPrice}>{product.price} ILS </Text>
-  </View>
-) : (
-  <Text style={styles.price}>{product.price} ILS </Text>
-)}
-
+                      {product.offer &&
+                      new Date(product.offer.expiresAt) > new Date() ? (
+                        <View>
+                          <Text style={styles.originalPrice}>
+                            {(
+                              product.price /
+                              (1 - product.offer.discountPercentage / 100)
+                            ).toFixed(2)}{" "}
+                            ILS
+                          </Text>
+                          <Text style={styles.discountedPrice}>
+                            {product.price} ILS
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.price}>{product.price} ILS</Text>
+                      )}
 
                       <Text style={styles.options}>
-                        Color: {product.selectedColor} | Size: {product.selectedSize}
+                        Color: {product.selectedColor} | Size:{" "}
+                        {product.selectedSize}
                       </Text>
 
                       <View style={styles.actions}>
@@ -258,22 +468,66 @@ const groupedByShop = cart.reduce((acc, item) => {
                           >
                             <Text style={styles.quantityButton}>-</Text>
                           </TouchableOpacity>
-                          <Text style={styles.quantityText}>{product.quantity}</Text>
+                          <Text style={styles.quantityText}>
+                            {product.quantity}
+                          </Text>
                           <TouchableOpacity
-                            onPress={() =>
-                              updateCartQuantity(
-                                product.productId,
-                                product.selectedColor,
-                                product.selectedSize,
-                                product.quantity + 1
-                              )
-                            }
+                            onPress={async () => {
+                              try {
+                                const res = await axios.get(
+                                  `http://172.20.10.4:5000/public/shop/${product.shopId._id}/product/${product.productId}`
+                                );
+
+                                const productData = res.data.product;
+                                const selectedColor = productData.colors.find(
+                                  (c) => c.name === product.selectedColor
+                                );
+                                const selectedSizeObj =
+                                  selectedColor?.sizes.find(
+                                    (s) => s.size === product.selectedSize
+                                  );
+
+                                if (!selectedSizeObj) {
+                                  Alert.alert(
+                                    "Error",
+                                    "Size not found in product data."
+                                  );
+                                  return;
+                                }
+
+                                if (
+                                  product.quantity + 1 >
+                                  selectedSizeObj.stock
+                                ) {
+                                  Alert.alert(
+                                    "Insufficient Stock",
+                                    `Only ${selectedSizeObj.stock} pieces available in stock.`
+                                  );
+                                  return;
+                                }
+
+                                updateCartQuantity(
+                                  product.productId,
+                                  product.selectedColor,
+                                  product.selectedSize,
+                                  product.quantity + 1
+                                );
+                              } catch (error) {
+                                console.error("Error checking stock:", error);
+                                Alert.alert(
+                                  "Error",
+                                  "Failed to check stock. Please try again."
+                                );
+                              }
+                            }}
                           >
                             <Text style={styles.quantityButton}>+</Text>
                           </TouchableOpacity>
                         </View>
 
-                        <TouchableOpacity onPress={() => toggleFavorite(product)}>
+                        <TouchableOpacity
+                          onPress={() => toggleFavorite(product)}
+                        >
                           <Image
                             source={
                               isFav
@@ -291,7 +545,44 @@ const groupedByShop = cart.reduce((acc, item) => {
             })}
           </View>
         )}
+        ListFooterComponent={<View style={{ height: 120 }} />}
       />
+      {soldOutItems.length > 0 && (
+        <View style={{ marginTop: 30, paddingHorizontal: 15 }}>
+          <Text style={{ fontSize: 16, fontWeight: "bold", color: "red" }}>
+            Sold Out Items
+          </Text>
+          {soldOutItems.map((item, index) => (
+            <View
+              key={index}
+              style={{
+                marginTop: 10,
+                backgroundColor: "#fdd",
+                padding: 10,
+                borderRadius: 10,
+              }}
+            >
+              <Text style={{ fontWeight: "bold" }}>{item.title}</Text>
+              <Text style={{ color: "#555" }}>
+                Color: {item.selectedColor} | Size: {item.selectedSize}
+              </Text>
+              <Text style={{ color: "red" }}>Out of stock</Text>
+            </View>
+          ))}
+        </View>
+      )}
+      <View style={styles.summaryContainer}>
+        <TouchableOpacity
+          onPress={handleCheckout}
+          style={styles.checkoutButton}
+        >
+          <Text style={styles.checkoutButtonText}>Checkout</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.totalText}>
+          <Text style={styles.savedText}>saved ₪{saved} </Text> ₪{total}
+        </Text>
+      </View>
     </View>
   );
 };
@@ -299,10 +590,8 @@ const groupedByShop = cart.reduce((acc, item) => {
 const styles = StyleSheet.create({
   backButton: { position: "absolute", top: 40, left: 15, zIndex: 10 },
   backIcon: { width: 25, height: 25, tintColor: "#333" },
-  shopSection: { marginTop: 80, marginBottom: 2, paddingHorizontal: 10 },
-  shopHeader: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
-  shopIcon: { width: 30, height: 30, marginRight: 10 },
-  shopName: { fontSize: 16, fontWeight: "bold" },
+  shopSection: { marginTop: 80, paddingHorizontal: 10 },
+  shopName: { fontSize: 16, fontWeight: "bold", marginBottom: 10 },
   productCard: {
     flexDirection: "row",
     backgroundColor: "#fff",
@@ -312,9 +601,21 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   productImage: { width: 80, height: 80, marginRight: 10, borderRadius: 8 },
-  productDetails: { flex: 1, justifyContent: "space-between" },
+  productDetails: { flex: 1 },
   title: { fontSize: 14, fontWeight: "bold" },
   price: { fontSize: 14, color: "#e53935", marginVertical: 4 },
+  originalPrice: {
+    textDecorationLine: "line-through",
+    color: "#888",
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  discountedPrice: {
+    color: "#e53935",
+    fontSize: 15,
+    fontWeight: "bold",
+    marginTop: 2,
+  },
   options: { fontSize: 12, color: "#555" },
   actions: {
     marginTop: 10,
@@ -343,17 +644,46 @@ const styles = StyleSheet.create({
     marginBottom: 7,
   },
   deleteIcon: { width: 30, height: 30, tintColor: "white" },
-  originalPrice: {
-    textDecorationLine: "line-through",
-    color: "#888",
-    fontSize: 13,
-    fontWeight: "500",
+  summaryContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "#fff",
+    padding: 15,
+    borderTopWidth: 1,
+    borderTopColor: "#ddd",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    elevation: 10,
+    height: 90,
   },
-  discountedPrice: {
-    color: "#e53935",
-    fontSize: 15,
+  checkoutButton: {
+    backgroundColor: "#000",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    width: 140,
+    height: 40,
+    marginLeft: 10,
+    marginBottom: 15,
+  },
+  checkoutButtonText: {
+    color: "#fff",
+    fontSize: 16,
     fontWeight: "bold",
-    marginTop: 2,
+    marginLeft: 10,
+  },
+  totalText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#e67e22",
+    marginBottom: 25,
+  },
+  savedText: {
+    fontSize: 13,
+    color: "#888",
+    marginLeft: 8,
   },
 });
 

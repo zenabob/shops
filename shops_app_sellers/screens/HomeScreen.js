@@ -68,7 +68,10 @@ const HomeScreen = () => {
         }
         setForm({ email: "", password: "" });
         setErrors({});
-        navigation.navigate("Main", { userId: data.userId });
+       navigation.navigate("Main", {
+  userId: data.userId,
+  shopId: data.shopId,
+});
 
       } else {
         // Check if the backend sends a `field` and `message` pair

@@ -1,10 +1,13 @@
 // App.js
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createStackNavigator } from '@react-navigation/stack';
 import { ActionSheetProvider } from '@expo/react-native-action-sheet';
+import axios from "axios";
+import { useNavigation } from '@react-navigation/native';
+
 import { Text } from 'react-native'; 
 
 import HomeScreen from './screens/HomeScreen';
@@ -12,21 +15,51 @@ import MainScreen from './screens/MainScreen';
 import CreateAccount from './screens/CreateAccount';
 import ForgetPassword from './screens/ForgetPassword';
 import Offer from './screens/Offer'
-
+import ShopOrdersScreen from './screens/ShopOrders';
+import NotificationsScreen from './screens/NotificationsScreen';
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 
 function MainDrawerWrapper({ route }) {
-  const { userId } = route.params;
+ const { userId, shopId } = route.params;
 
   console.log("🧩 MainDrawerWrapper - userId:", userId); // ADD THIS
 
-  return <MainDrawer userId={userId} />;
+  return <MainDrawer userId={userId} shopId={shopId} />;
+
 }
 
 
-function MainDrawer({ userId }) {
-  console.log("📦 MainDrawer - received userId:", userId); // ADD THIS
+function MainDrawer({ userId, shopId }) {
+  const navigation = useNavigation(); // ✅ الحل هنا
+  const [notificationCount, setNotificationCount] = React.useState(0);
+
+  useEffect(() => {
+    const fetchCount = async () => {
+      if (!shopId) return;
+      try {
+        const res = await axios.get(
+          `http://172.20.10.4:5000/notifications/${shopId}?onlyUnread=true`
+        );
+        setNotificationCount(res.data.length);
+      } catch (err) {
+        console.error("❌ Failed to fetch notification count", err);
+      }
+    };
+
+    fetchCount();
+
+    const interval = setInterval(fetchCount, 10000);
+
+    const unsubscribe = navigation.addListener("focus", () => {
+      fetchCount(); // ← تحدث عند التركيز على القائمة
+    });
+
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
+  }, [shopId, navigation]);
 
   return (
     <Drawer.Navigator screenOptions={{ headerShown: false }}>
@@ -36,17 +69,35 @@ function MainDrawer({ userId }) {
         options={{ drawerLabel: "Profile Account" }}
         initialParams={{ userId }}
       />
-      <Drawer.Screen name="Orders" component={() => <Text>Orders Screen</Text>} />
+      <Drawer.Screen
+  name="Notifications"
+  options={{
+    drawerLabel: `Notifications${notificationCount > 0 ? ` (${notificationCount})` : ""}`,
+  }}
+>
+  {props => (
+    <NotificationsScreen
+      {...props}
+      shopId={shopId}
+      onUpdateCount={setNotificationCount} // ✅ هنا نمررها
+    />
+  )}
+</Drawer.Screen>
+
+      <Drawer.Screen
+        name="Orders"
+        component={ShopOrdersScreen}
+        initialParams={{ userId, shopId }}
+      />
       <Drawer.Screen name="Make an Offer">
-        {props => {
-          console.log("🛍️ Offer Screen - props received:", props); // ADD THIS
-          return <Offer {...props} userId={userId} />;
-        }}
+        {props => <Offer {...props} userId={userId} />}
       </Drawer.Screen>
       <Drawer.Screen name="Logout" component={HomeScreen} />
     </Drawer.Navigator>
   );
 }
+
+
 
 
 export default function App() {
