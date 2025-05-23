@@ -722,204 +722,125 @@ app.get("/user/:userId/personalized-products", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
 app.post("/orders/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
-    const { location, shippingCost } = req.body;
+    const { location, shippingCost = 0 } = req.body;
 
     const user = await User.findById(userId).populate("cart.shopId");
-    if (!user || !user.cart || user.cart.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "Cart is empty or user not found." });
+    if (!user || !user.cart.length) {
+      return res.status(400).json({ message: "User not found or cart is empty." });
     }
 
+    const groupedByShop = {};
+    for (let item of user.cart) {
+      const shopKey = item.shopId._id?.toString?.() || item.shopId?.toString?.();
+      if (!groupedByShop[shopKey]) groupedByShop[shopKey] = [];
+      groupedByShop[shopKey].push(item);
+    }
+
+    const createdOrders = [];
     const failedItems = [];
+    let globalOrderIndex = 0;
 
-    for (let item of user.cart) {
-      const productRes = await axios.get(
-        `http://172.20.10.4:5000/public/shop/${item.shopId._id}/product/${item.productId}`
-      );
+    for (const [shopId, items] of Object.entries(groupedByShop)) {
+      let total = 0;
+      const shop = await Shop.findById(shopId);
+      if (!shop) continue;
 
-      const product = productRes.data.product;
-      const color = product.colors.find((c) => c.name === item.selectedColor);
-      const size = color?.sizes.find((s) => s.size === item.selectedSize);
+      for (let item of items) {
+        const product = shop.categories?.flatMap(cat => cat.products)
+          ?.find(prod => prod._id.toString() === item.productId);
 
-      if (!size || size.stock < item.quantity) {
-        failedItems.push({
-          title: item.title,
-          color: item.selectedColor,
-          size: item.selectedSize,
-          requested: item.quantity,
-          available: size ? size.stock : 0,
-        });
-      }
-    }
+        const color = product?.colors.find(c => c.name === item.selectedColor);
+        const size = color?.sizes.find(s => s.size === item.selectedSize);
 
-    if (failedItems.length > 0) {
-      return res.status(409).json({
-        message: "Some items in the cart are no longer available.",
-        failedItems,
-      });
-    }
+        if (!size || size.stock < item.quantity) {
+          failedItems.push({
+            shopId,
+            title: item.title,
+            color: item.selectedColor,
+            size: item.selectedSize,
+            requested: item.quantity,
+            available: size ? size.stock : 0,
+          });
+          continue;
+        }
 
-    const orderId = uuidv4();
-
-    const newOrder = new Order({
-  orderId,
-  shopId: null,
-  userId,
-  userName: user.fullName,
-  userPhone: user.PhoneNumber,
-  userLocation: location,
-  totalPrice: 0,
-  products: user.cart
-    .filter((item) => item.shopId)
-    .map((item) => ({
-      shopId:
-        typeof item.shopId === "object" && item.shopId !== null
-          ? item.shopId._id?.toString?.() || item.shopId.toString?.()
-          : item.shopId?.toString?.(),
-      productId: item.productId,
-      title: item.title,
-      image: item.image,
-      price: item.price,
-      selectedColor: item.selectedColor,
-      selectedSize: item.selectedSize,
-      quantity: item.quantity,
-      categoryName: item.categoryName,
-      offer: item.offer,
-    })),
-  status: "Pending",
-  createdAt: new Date(),
-});
-
-    let total = 0;
-
-    for (let item of user.cart) {
-      const shop = await Shop.findById(item.shopId._id);
-
-      const product = shop.categories
-        ?.flatMap((cat) => cat.products)
-        ?.find((prod) => prod._id.toString() === item.productId);
-
-      if (!product) {
-        console.warn(
-          `❌ Product not found in shop ${shop._id} for productId ${item.productId}`
-        );
-        continue;
-      }
-
-      const color = product.colors.find((c) => c.name === item.selectedColor);
-      const size = color?.sizes.find((s) => s.size === item.selectedSize);
-
-      if (size && size.stock >= item.quantity) {
         size.stock -= item.quantity;
-        total += item.quantity * item.price;
-        await shop.save();
+        total += item.price * item.quantity;
+      }
+
+      await shop.save();
+
+      const includeShipping = globalOrderIndex === 0;
+      const totalPrice = total;
+
+      const order = new Order({
+        orderId: uuidv4(),
+        shopId,
+        userId,
+        userName: user.fullName,
+        userPhone: user.PhoneNumber,
+        userLocation: location,
+        totalPrice,
+        products: items.map(item => ({
+          shopId,
+          productId: item.productId,
+          title: item.title,
+          image: item.image,
+          price: item.price,
+          selectedColor: item.selectedColor,
+          selectedSize: item.selectedSize,
+          quantity: item.quantity,
+          categoryName: item.categoryName,
+          offer: item.offer,
+        })),
+        status: "New",
+        createdAt: new Date(),
+      });
+
+      await order.save();
+      createdOrders.push(order);
+      globalOrderIndex++;
+
+      for (let item of items) {
+        const product = shop.categories?.flatMap(cat => cat.products)
+          ?.find(prod => prod._id.toString() === item.productId);
+
+        const color = product?.colors.find(c => c.name === item.selectedColor);
+        const size = color?.sizes.find(s => s.size === item.selectedSize);
+
+        if (size?.stock === 0) {
+          await axios.post("http://172.20.10.4:5000/notify-soldout", {
+            shopId,
+            productId: product._id.toString(),
+            color: item.selectedColor,
+            size: item.selectedSize,
+          });
+        }
       }
     }
-
-    newOrder.totalPrice = total + shippingCost;
-    await newOrder.save();
 
     user.cart = [];
     await user.save();
 
-    res.status(200).json({ message: "Order placed successfully", orderId });
-
-    // ✅ بعد إرسال الرد، نرسل إشعارات للبائع إذا منتج أصبح سولد آوت
-    try {
-      for (const item of newOrder.products) {
-        let shopId;
-
-        if (item.shopId && typeof item.shopId === "object" && item.shopId._id) {
-          shopId = item.shopId._id.toString();
-        } else if (
-          typeof item.shopId === "string" ||
-          typeof item.shopId === "number"
-        ) {
-          shopId = item.shopId.toString();
-        } else {
-          console.warn("❌ Invalid shopId structure in item:", item);
-          continue;
-        }
-
-        const shop = await Shop.findById(shopId);
-        if (!shop) {
-          console.warn("❌ Shop not found:", shopId);
-          continue;
-        }
-
-        let foundProduct = null;
-
-        // البحث داخل جميع الفئات
-        for (let category of shop.categories) {
-          for (let product of category.products) {
-            // ✅ تأكد من مقارنة الأنواع بشكل صحيح
-            if (
-              product._id.toString() === item.productId.toString() &&
-              product.colors?.some((c) => c.name === item.selectedColor)
-            ) {
-              foundProduct = product;
-              break;
-            }
-          }
-          if (foundProduct) break;
-        }
-
-        if (!foundProduct) {
-          console.warn(
-            "❌ Product not found for notification:",
-            item.productId
-          );
-          continue;
-        }
-
-        const color = foundProduct.colors.find(
-          (c) => c.name === item.selectedColor
-        );
-        if (!color) {
-          console.warn("❌ Color not found:", item.selectedColor);
-          continue;
-        }
-
-        const size = color.sizes.find((s) => s.size === item.selectedSize);
-        if (!size) {
-          console.warn("❌ Size not found:", item.selectedSize);
-          continue;
-        }
-
-        // ✅ إذا المخزون صفر، أرسل إشعار
-        if (size.stock === 0) {
-          console.log("🟥 Sending notification for sold out:", {
-            shopId,
-            productId: foundProduct._id.toString(), // تأكد من إرساله كـ String
-            color: item.selectedColor,
-            size: item.selectedSize,
-          });
-
-          await axios.post("http://172.20.10.4:5000/notify-soldout", {
-            shopId: shopId.toString(),
-            productId: foundProduct._id.toString(),
-            color: item.selectedColor,
-            size: item.selectedSize,
-          });
-        }
-      }
-    } catch (notifyErr) {
-      console.warn(
-        "⚠️ Failed to send sold-out notifications:",
-        notifyErr.message
-      );
+    if (failedItems.length > 0) {
+      return res.status(409).json({
+        message: "Some items couldn't be ordered due to stock limits.",
+        failedItems,
+        createdOrders,
+      });
     }
+
+    res.status(200).json({ message: "Orders created successfully", createdOrders });
   } catch (error) {
-    console.error("❌ Order processing error:", error);
-    if (!res.headersSent) {
-      res.status(500).json({ message: "Internal server error" });
-    }
+    console.error("❌ Order creation error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
+
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5001;

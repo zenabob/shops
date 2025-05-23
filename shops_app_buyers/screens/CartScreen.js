@@ -282,12 +282,12 @@ else if (item.quantity > availableStock) {
         "Please choose your location",
         [
           {
-            text: "Jerusalem",
+            text: "Jerusalem   30",
             onPress: () => confirmLocation("Jerusalem", 30),
           },
-          { text: "Israel", onPress: () => confirmLocation("Israel", 70) },
+          { text: "Israel   70", onPress: () => confirmLocation("Israel", 70) },
           {
-            text: "West Bank",
+            text: "West Bank   20",
             onPress: () => confirmLocation("West Bank", 20),
           },
           { text: "Cancel", style: "cancel" },

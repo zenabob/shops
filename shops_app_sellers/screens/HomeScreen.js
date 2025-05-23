@@ -305,6 +305,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     top: -167,
   },
+  
 });
 
 export default HomeScreen;

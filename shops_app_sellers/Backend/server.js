@@ -632,7 +632,7 @@ app.put(
       const shop = await User.findById(userId); // ← استخدمي الموديل الصح
 
       if (!shop) {
-        return res.status(404).json({ message: "Shop not found" });
+        return res.status(404).json({ message: "Shop not found4" });
       }
 
       const categoryObj = shop.categories.find((cat) => cat.name === category);
@@ -675,7 +675,7 @@ app.get("/public/shop/:shopId/products", async (req, res) => {
   const shopId = req.params.shopId;
   const shop = await User.findById(shopId);
 
-  if (!shop) return res.status(404).json({ message: "Shop not found" });
+  if (!shop) return res.status(404).json({ message: "Shop not found5" });
 
   const categoriesWithShopId = shop.categories.map((category) => ({
     ...category.toObject(),
@@ -692,7 +692,16 @@ app.get("/public/shop/:shopId/product/:productId", async (req, res) => {
   try {
     const { shopId, productId } = req.params;
 
+    console.log("🔍 Received shopId:", shopId);
+    console.log("🔍 Received productId:", productId);
+
+    if (!mongoose.Types.ObjectId.isValid(shopId)) {
+      console.error("❌ Invalid shopId format:", shopId);
+      return res.status(400).json({ message: "Invalid shopId" });
+    }
+
     const shop = await User.findById(shopId);
+
     if (!shop) {
       console.error("❌ Shop not found:", shopId);
       return res.status(404).json({ message: "Shop not found" });
@@ -716,11 +725,12 @@ app.get("/public/shop/:shopId/product/:productId", async (req, res) => {
   }
 });
 
+
 app.get("/public/shop/:shopId/media", async (req, res) => {
   try {
     const shop = await User.findById(req.params.shopId);
 
-    if (!shop) return res.status(404).json({ message: "Shop not found" });
+    if (!shop) return res.status(404).json({ message: "Shop not found2" });
 
     res.json({
       logo: shop.logo,
@@ -809,7 +819,7 @@ app.get("/public/shop-products/:shopName", async (req, res) => {
       shopName: { $regex: new RegExp(`^${shopName}$`, "i") }, // تطابق مضبوط مع تجاهل حالة الحروف والمسافات
     });
 
-    if (!shop) return res.status(404).json({ message: "Shop not found" });
+    if (!shop) return res.status(404).json({ message: "Shop not found1" });
 
     const allProducts = [];
 
@@ -1064,18 +1074,44 @@ app.get("/public/search-category-products", async (req, res) => {
 app.get("/shop/:shopId/orders", async (req, res) => {
   try {
     const { shopId } = req.params;
+    const { sort = "desc", customer, product, location, date } = req.query;
 
-    const orders = await Order.find({ shopId })
-      .sort({ createdAt: -1 }) // أحدث الطلبات أولًا
-      
-      .lean();
+    let filter = { shopId };
+
+    if (customer) {
+      filter.userName = { $regex: new RegExp(customer, "i") };
+    }
+
+    if (location) {
+      filter.userLocation = { $regex: new RegExp(location, "i") };
+    }
+
+    if (date) {
+      const start = new Date(date);
+      const end = new Date(date);
+      end.setHours(23, 59, 59, 999);
+      filter.createdAt = { $gte: start, $lte: end };
+    }
+
+    if (product) {
+      filter.products = {
+        $elemMatch: {
+          title: { $regex: new RegExp(product, "i") },
+        },
+      };
+    }
+
+    const orders = await Order.find(filter).sort({
+      createdAt: sort === "asc" ? 1 : -1,
+    });
 
     res.status(200).json(orders);
   } catch (error) {
-    console.error("❌ Error fetching shop orders:", error);
+    console.error("❌ Error fetching filtered shop orders:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
+
 app.put("/orders/:orderId/status", async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -1100,7 +1136,7 @@ app.post("/notify-soldout", async (req, res) => {
     const { shopId, productId, color, size } = req.body;
 
     const shop = await User.findById(shopId);
-    if (!shop) return res.status(404).json({ message: "Shop not found" });
+    if (!shop) return res.status(404).json({ message: "Shop not found3" });
 
     let productTitle = "Unknown Product";
 

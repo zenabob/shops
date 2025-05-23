@@ -27,7 +27,12 @@ const OrderSchema = new mongoose.Schema({
   type: String,
   enum: ["Pending", "Prepared", "Delivered", "New"],
   default: "New",
-}
+},
+shippingIncluded: {
+  type: Boolean,
+  default: false,
+},
+
 });
 
 module.exports = mongoose.model("Order", OrderSchema);
