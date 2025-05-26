@@ -32,6 +32,7 @@ shippingIncluded: {
   type: Boolean,
   default: false,
 },
+deliveredToAdminAt: { type: Date, default: null },
 
 });
 

@@ -112,6 +112,12 @@ const ShopSchema = new mongoose.Schema({
       ],
     },
   ],
+  status: {
+  type: String,
+  enum: ["approved", "pending"],
+  default: "pending", 
+}
+
 });
 
 // Models
@@ -367,7 +373,7 @@ app.get("/profile/:userId/cart", async (req, res) => {
 
       try {
         const resProduct = await axios.get(
-          `http://172.20.10.4:5000/public/shop/${shopId._id}/product/${productId}`
+          `http://localhost:5000/public/shop/${shopId._id}/product/${productId}`
         );
 
         const product = resProduct.data?.product;
@@ -462,7 +468,7 @@ app.post("/user/:userId/favorites", async (req, res) => {
     let offer = null;
     try {
       const resProduct = await axios.get(
-        `http://172.20.10.4:5000/public/shop/${shopId}/product/${productId}`
+        `http://localhost:5000/public/shop/${shopId}/product/${productId}`
       );
       const product = resProduct.data.product;
       if (product?.offer && new Date(product.offer.expiresAt) > new Date()) {
@@ -508,7 +514,7 @@ app.get("/user/:userId/favorites", async (req, res) => {
 
       try {
         const resProduct = await axios.get(
-          `http://172.20.10.4:5000/public/shop/${fav.shopId}/product/${fav.productId}`
+          `http://localhost:5000/public/shop/${fav.shopId}/product/${fav.productId}`
         );
         const product = resProduct.data.product;
 
@@ -587,9 +593,9 @@ app.get("/personalized-products/:userId", async (req, res) => {
     const { userId } = req.params;
 
     const favorites = await axios.get(
-      `http://172.20.10.4:5001/user/${userId}/favorites`
+      `http://localhost:5001/user/${userId}/favorites`
     );
-    const cart = await axios.get(`http://172.20.10.4:5001/user/${userId}/cart`);
+    const cart = await axios.get(`http://localhost:5001/user/${userId}/cart`);
 
     const favoriteProductIds = favorites.data.map((item) => item.productId);
     const cartProductIds = cart.data.map((item) => item.productId);
@@ -813,7 +819,7 @@ app.post("/orders/:userId", async (req, res) => {
         const size = color?.sizes.find(s => s.size === item.selectedSize);
 
         if (size?.stock === 0) {
-          await axios.post("http://172.20.10.4:5000/notify-soldout", {
+          await axios.post("http://localhost:5000/notify-soldout", {
             shopId,
             productId: product._id.toString(),
             color: item.selectedColor,

@@ -11,7 +11,7 @@ const MainScreen = () => {
     <Tab.Navigator
       initialRouteName="Orders"
       screenOptions={{
-        tabBarLabelStyle: { fontSize: 14, fontWeight: 'bold' },
+        tabBarLabelStyle: { fontSize: 14, fontWeight: 'bold' ,marginTop:70},
         tabBarIndicatorStyle: { backgroundColor: 'black' },
         tabBarStyle: { backgroundColor: '#f0f0f0' },
       }}

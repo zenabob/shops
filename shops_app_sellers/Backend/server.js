@@ -65,6 +65,12 @@ const shopSchema = new mongoose.Schema({
       ],
     },
   ],
+  status: {
+  type: String,
+  enum: ["approved", "pending"],
+  default: "pending", 
+}
+
 });
 
 const User = mongoose.model("Shops", shopSchema);
@@ -134,6 +140,7 @@ app.post("/create-account", async (req, res) => {
       confirmPassword,
       location,
       phoneNumber,
+      
     } = req.body;
 
     if (
@@ -159,13 +166,15 @@ app.post("/create-account", async (req, res) => {
     }
 
     const newUser = new User({
-      shopName,
-      fullName,
-      email,
-      password,
-      location,
-      phoneNumber,
-    });
+  shopName,
+  fullName,
+  email,
+  password,
+  location,
+  phoneNumber,
+  status: "pending",
+});
+
     await newUser.save();
 
     res.status(201).json({ message: "Account created successfully!" });
@@ -186,7 +195,6 @@ app.post("/loginSeller", async (req, res) => {
   }
 
   try {
-    // ✅ Step 1: Check if the user exists
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -195,14 +203,20 @@ app.post("/loginSeller", async (req, res) => {
         .json({ field: "email", message: "The email doesn't exist" });
     }
 
-    // ✅ Step 2: Check if password matches
     if (user.password !== password) {
       return res
         .status(401)
         .json({ field: "password", message: "Incorrect password" });
     }
 
-    // ✅ Step 3: Login success
+    // ✅ تحقق من الحالة قبل تسجيل الدخول
+    if (user.status !== "approved") {
+      return res.status(403).json({
+        message: "Your account is pending approval by the admin.",
+        status: "pending",
+      });
+    }
+
     res.status(200).json({
       message: "Login successful",
       userId: user._id.toString(),
@@ -213,6 +227,7 @@ app.post("/loginSeller", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
 
 // Reset password
 app.post("/reset-password/:userId", async (req, res) => {
@@ -1117,9 +1132,15 @@ app.put("/orders/:orderId/status", async (req, res) => {
     const { orderId } = req.params;
     const { status } = req.body;
 
+    const updateData = { status };
+
+    if (status === "Delivered to Admin") {
+      updateData.deliveredToAdminAt = new Date(); // ✅ Set the delivery date
+    }
+
     const order = await Order.findOneAndUpdate(
       { orderId },
-      { status },
+      updateData,
       { new: true }
     );
 
@@ -1131,6 +1152,8 @@ app.put("/orders/:orderId/status", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+
 app.post("/notify-soldout", async (req, res) => {
   try {
     const { shopId, productId, color, size } = req.body;

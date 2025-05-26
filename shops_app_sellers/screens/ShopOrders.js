@@ -16,7 +16,7 @@ const ShopOrdersScreen = ({ route, navigation }) => {
   const { userId, shopId } = route.params || {};
   const [orders, setOrders] = useState([]);
   const [filterStatus, setFilterStatus] = useState("All");
-  const statusOptions = ["Pending", "Prepared", "Delivered", "New"];
+  const statusOptions = ["New", "Pending", "Prepared", "Delivered to Admin"];
 
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [sortOrder, setSortOrder] = useState("desc");
@@ -95,23 +95,26 @@ const ShopOrdersScreen = ({ route, navigation }) => {
     }
   };
 
-  const updateOrderStatus = async (orderId, newStatus) => {
-    try {
-      await axios.put(`http://172.20.10.4:5000/orders/${orderId}/status`, {
-        status: newStatus,
-      });
+ const updateOrderStatus = async (orderId, newStatus) => {
+  try {
+    const response = await axios.put(`http://172.20.10.4:5000/orders/${orderId}/status`, {
+      status: newStatus,
+    });
 
-      // Update locally
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.orderId === orderId ? { ...order, status: newStatus } : order
-        )
-      );
-    } catch (err) {
-      Alert.alert("Error", "Failed to update order status.");
-      console.error(err);
-    }
-  };
+    const updatedOrder = response.data.order;
+
+    // ✅ تحديث الطلب بالكامل بما فيه deliveredToAdminAt
+    setOrders((prevOrders) =>
+      prevOrders.map((order) =>
+        order.orderId === orderId ? updatedOrder : order
+      )
+    );
+  } catch (err) {
+    Alert.alert("Error", "Failed to update order status.");
+    console.error(err);
+  }
+};
+
 
   const filteredOrders =
     filterStatus === "All"
@@ -155,6 +158,15 @@ const ShopOrdersScreen = ({ route, navigation }) => {
           / {prod.selectedSize}
         </Text>
       ))}
+<Text style={styles.dateInfo}>
+  Created At: {new Date(item.createdAt).toLocaleDateString()}
+</Text>
+{item.status === "Delivered to Admin" && item.deliveredToAdminAt && (
+  <Text style={styles.dateInfo}>
+    Delivered To Admin: {new Date(item.deliveredToAdminAt).toLocaleDateString()}
+  </Text>
+)}
+
 
       <Text style={styles.total}>
         Total: ₪{item.totalPrice?.toFixed(2) || 0}
@@ -515,6 +527,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     color: "#333",
   },
+  dateInfo: {
+  fontSize: 12,
+  color: "#666",
+  marginTop: 5,
+},
+
 });
 
 export default ShopOrdersScreen;

@@ -118,11 +118,12 @@ const RegisterScreen = () => {
       const data = JSON.parse(text);
   
       if (response.ok) {
-        console.log("Success: Account created successfully!");
-        navigation.navigate("Home");
-      } else {
+  alert("Your account has been created. An admin will contact you for verification.");
+  navigation.navigate("Home");
+}
+ else {
         console.log("Error:", data.error);
-        setErrors(data.error || {}); // Ensure errors exist before setting
+        setErrors(data.error || {}); 
       }
     } catch (error) {
       console.error("Error:", error);

@@ -59,6 +59,13 @@ const ShopSchema = new mongoose.Schema({
       ],
     },
   ],
+  status: {
+  type: String,
+  enum: ["approved", "pending"],
+  default: "pending", 
+}
+
+
 });
 const Shop = mongoose.model("Shops", ShopSchema);
 
@@ -88,24 +95,202 @@ app.post("/loginSeller", async (req, res) => {
 });
 app.get('/admin/grouped-orders', async (req, res) => {
   try {
-    const orders = await Order.find().populate('shopId', 'shopName');
+    const { customer, product, location, date, sort, shopName } = req.query;
 
-    const grouped = {};
+    const filter = {};
 
-    for (const order of orders) {
-      const shopName = order.shopId?.shopName || 'Unknown Shop';
-      if (!grouped[shopName]) grouped[shopName] = [];
-      grouped[shopName].push(order);
+    if (customer) {
+      filter.userName = { $regex: new RegExp(customer, 'i') };
     }
 
-    res.json(grouped);
+    if (location) {
+      filter.userLocation = { $regex: new RegExp(location, 'i') };
+    }
+
+    if (date) {
+      const start = new Date(date);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(date);
+      end.setHours(23, 59, 59, 999);
+      filter.createdAt = { $gte: start, $lte: end };
+    }
+
+    // 🧠 Fetch all orders matching filters
+    let orders = await Order.find(filter).populate('shopId', 'shopName');
+
+    // 🧠 Filter by product title (client-side after fetch)
+    if (product) {
+      orders = orders.filter((order) =>
+        order.products.some((p) =>
+          p.title.toLowerCase().includes(product.toLowerCase())
+        )
+      );
+    }
+
+    // 🧠 Filter by shop name (after population)
+    if (shopName) {
+      orders = orders.filter((order) =>
+        order.shopId?.shopName?.toLowerCase().includes(shopName.toLowerCase())
+      );
+    }
+
+    // 🧠 Sort by createdAt
+    if (sort === 'asc') {
+      orders.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    } else {
+      orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+
+    // 🧠 Group orders by shop name
+    const grouped = {};
+    for (const order of orders) {
+      const shop = order.shopId?.shopName || 'Unknown Shop';
+      if (!grouped[shop]) grouped[shop] = [];
+      grouped[shop].push(order);
+    }
+
+    res.json({ grouped, all: orders });
   } catch (err) {
     console.error('❌ Error grouping orders:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// ✅ تشغيل السيرفر
+app.put('/admin/orders/:id/deliver', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const updatedOrder = await Order.findByIdAndUpdate(
+      id,
+      {
+        status: "Delivered",
+        deliveredAt: new Date(), 
+      },
+      { new: true } 
+    );
+
+    if (!updatedOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.json({ message: "Order marked as delivered", order: updatedOrder });
+  } catch (err) {
+    console.error("❌ Failed to update order:", err);
+    res.status(500).json({ message: "Failed to update order" });
+  }
+});
+// Undo delivery (from Delivered → back to previous state)
+app.put('/admin/orders/:id/undo-deliver', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const updatedOrder = await Order.findByIdAndUpdate(
+      id,
+      {
+        status: "Delivered to Admin",  // أو "Prepared" حسب منطقك
+        deliveredAt: null,             // إلغاء تاريخ تسليم الكوستمر
+      },
+      { new: true }
+    );
+
+    if (!updatedOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.json({ message: "Order delivery undone", order: updatedOrder });
+  } catch (err) {
+    console.error("❌ Undo delivery error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.get("/admin/shops", async (req, res) => {
+  try {
+    const shops = await Shop.find({ status: "approved" }); // ✅ فقط الموافق عليها
+    res.json(shops);
+  } catch (err) {
+    console.error("❌ Error fetching shops:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.delete("/admin/shops/:shopId", async (req, res) => {
+  try {
+    const { shopId } = req.params;
+
+    const deleted = await User.findByIdAndDelete(shopId);
+
+    if (!deleted) {
+      return res.status(404).json({ message: "Shop not found" });
+    }
+
+    res.json({ message: "Shop deleted successfully" });
+  } catch (err) {
+    console.error("❌ Error deleting shop:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.put("/admin/approve-shop/:shopId", async (req, res) => {
+  try {
+    const { shopId } = req.params;
+
+    const shop = await Shop.findById(shopId);
+    if (!shop) return res.status(404).json({ message: "Shop not found" });
+
+    shop.status = "approved";
+    await shop.save();
+
+    res.json({ message: "Shop approved", shop });
+  } catch (err) {
+    console.error("Error approving shop:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.get("/admin/pending-shops", async (req, res) => {
+  try {
+    const pendingShops = await Shop.find({ status: "pending" });
+    res.json(pendingShops);
+  } catch (err) {
+    console.error("❌ Error fetching pending shops:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.delete("/admin/delete-shop/:shopId", async (req, res) => {
+  try {
+    const { shopId } = req.params;
+
+    const deleted = await Shop.findByIdAndDelete(shopId);
+
+    if (!deleted) {
+      return res.status(404).json({ message: "Shop not found" });
+    }
+
+    res.json({ message: "Shop deleted successfully" });
+  } catch (err) {
+    console.error("❌ Error deleting shop:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+app.put("/admin/remove-approval/:shopId", async (req, res) => {
+  try {
+    const { shopId } = req.params;
+
+    const shop = await Shop.findById(shopId);
+    if (!shop) return res.status(404).json({ message: "Shop not found" });
+
+    shop.status = "pending";
+    await shop.save();
+
+    res.json({ message: "Shop moved back to pending", shop });
+  } catch (err) {
+    console.error("Error removing approval:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
