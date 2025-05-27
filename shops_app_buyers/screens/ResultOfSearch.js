@@ -6,6 +6,7 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
+  Alert,
 } from "react-native";
 import ProductDetails from "../modals/ProductDetails";
 
@@ -150,7 +151,7 @@ const ResultOfSearch = ({ route, navigation }) => {
   const handleAddToCart = async (cartItem) => {
     try {
       if (!userId) {
-        alert("User not logged in");
+        Alert.alert("User not logged in");
         return;
       }
 
@@ -165,13 +166,13 @@ const ResultOfSearch = ({ route, navigation }) => {
 
       const text = await response.text();
       if (response.ok) {
-        alert("Product added to cart!");
+        Alert.alert("Product added to cart!");
       } else {
-        alert("Error: " + text);
+        Alert.alert("Error: " + text);
       }
     } catch (err) {
       console.error("Error adding to cart:", err);
-      alert("Something went wrong");
+      Alert.alert("Something went wrong");
     }
   };
 
@@ -201,7 +202,7 @@ const ResultOfSearch = ({ route, navigation }) => {
       setShowDetailModal(true);
     } catch (error) {
       console.error("❌ Error fetching full product details:", error);
-      alert("Failed to load product details.");
+      Alert.alert("Failed to load product details.");
     }
   };
   const renderItem = ({ item }) => {

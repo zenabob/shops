@@ -57,7 +57,7 @@ const ProductDetails = ({
       if (!userId || !selectedProductDetails?._id) return;
       try {
         const res = await axios.get(
-          `http://localhost:5001/user/${userId}/favorites`
+          `http://172.20.10.4:5001/user/${userId}/favorites`
         );
         const found = res.data.find(
           (item) => item.productId === selectedProductDetails._id
@@ -75,7 +75,7 @@ const ProductDetails = ({
     const registerView = async () => {
       if (userId && selectedProductDetails?._id) {
         try {
-          await axios.post(`http://localhost:5001/user/${userId}/viewed`, {
+          await axios.post(`http://172.20.10.4:5001/user/${userId}/viewed`, {
             productId: selectedProductDetails._id,
           });
         } catch (error) {
@@ -93,7 +93,7 @@ const ProductDetails = ({
     try {
       if (isFavorite) {
         await axios.delete(
-          `http://localhost:5001/user/${userId}/favorites/${selectedProductDetails._id}`
+          `http://172.20.10.4:5001/user/${userId}/favorites/${selectedProductDetails._id}`
         );
         setIsFavorite(false);
         if (onFavoriteToggle) {
@@ -122,7 +122,7 @@ const ProductDetails = ({
         };
 
         await axios.post(
-          `http://localhost:5001/user/${userId}/favorites`,
+          `http://172.20.10.4:5001/user/${userId}/favorites`,
           favoriteItem
         );
         setIsFavorite(true);

@@ -34,7 +34,7 @@ const OrdersScreen = () => {
 const markAsDelivered = async (orderId) => {
   try {
     const response = await axios.put(
-      `http://localhost:5002/admin/orders/${orderId}/deliver`
+      `http://172.20.10.4:5002/admin/orders/${orderId}/deliver`
     );
     const updatedOrder = response.data.order;
 
@@ -68,7 +68,7 @@ const markAsDelivered = async (orderId) => {
     if (filters.orderDate) {
       params.date = filters.orderDate.toISOString().split("T")[0];
     }
-    const res = await axios.get("http://localhost:5002/admin/grouped-orders", { params });
+    const res = await axios.get("http://172.20.10.4:5002/admin/grouped-orders", { params });
     setGroupedOrders(res.data.grouped);
     setAllOrders(res.data.all);
     setLoading(false);
@@ -102,7 +102,7 @@ const handleShopNameChange = (text) => {
 const undoDelivery = async (orderId) => {
   try {
     const response = await axios.put(
-      `http://localhost:5002/admin/orders/${orderId}/undo-deliver`
+      `http://172.20.10.4:5002/admin/orders/${orderId}/undo-deliver`
     );
     const updatedOrder = response.data.order;
 

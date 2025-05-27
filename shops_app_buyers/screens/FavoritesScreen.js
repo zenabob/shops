@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  Alert,
 } from "react-native";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
@@ -53,9 +54,9 @@ const FavoritesScreen = ({ route }) => {
 
       const text = await response.text();
       if (response.ok) {
-        alert("Product added to cart!");
+        Alert.alert("Product added to cart!");
       } else {
-        alert("Error: " + text);
+        Alert.alert("Error: " + text);
       }
     } catch (err) {
       console.error("Error adding to cart:", err);

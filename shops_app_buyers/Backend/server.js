@@ -373,7 +373,7 @@ app.get("/profile/:userId/cart", async (req, res) => {
 
       try {
         const resProduct = await axios.get(
-          `http://localhost:5000/public/shop/${shopId._id}/product/${productId}`
+          `http://172.20.10.4:5000/public/shop/${shopId._id}/product/${productId}`
         );
 
         const product = resProduct.data?.product;
@@ -468,7 +468,7 @@ app.post("/user/:userId/favorites", async (req, res) => {
     let offer = null;
     try {
       const resProduct = await axios.get(
-        `http://localhost:5000/public/shop/${shopId}/product/${productId}`
+        `http://172.20.10.4:5000/public/shop/${shopId}/product/${productId}`
       );
       const product = resProduct.data.product;
       if (product?.offer && new Date(product.offer.expiresAt) > new Date()) {
@@ -514,7 +514,7 @@ app.get("/user/:userId/favorites", async (req, res) => {
 
       try {
         const resProduct = await axios.get(
-          `http://localhost:5000/public/shop/${fav.shopId}/product/${fav.productId}`
+          `http://172.20.10.4:5000/public/shop/${fav.shopId}/product/${fav.productId}`
         );
         const product = resProduct.data.product;
 
@@ -593,9 +593,9 @@ app.get("/personalized-products/:userId", async (req, res) => {
     const { userId } = req.params;
 
     const favorites = await axios.get(
-      `http://localhost:5001/user/${userId}/favorites`
+      `http://172.20.10.4:5001/user/${userId}/favorites`
     );
-    const cart = await axios.get(`http://localhost:5001/user/${userId}/cart`);
+    const cart = await axios.get(`http://172.20.10.4:5001/user/${userId}/cart`);
 
     const favoriteProductIds = favorites.data.map((item) => item.productId);
     const cartProductIds = cart.data.map((item) => item.productId);
@@ -784,28 +784,39 @@ app.post("/orders/:userId", async (req, res) => {
       const totalPrice = total;
 
       const order = new Order({
-        orderId: uuidv4(),
-        shopId,
-        userId,
-        userName: user.fullName,
-        userPhone: user.PhoneNumber,
-        userLocation: location,
-        totalPrice,
-        products: items.map(item => ({
-          shopId,
-          productId: item.productId,
-          title: item.title,
-          image: item.image,
-          price: item.price,
-          selectedColor: item.selectedColor,
-          selectedSize: item.selectedSize,
-          quantity: item.quantity,
-          categoryName: item.categoryName,
-          offer: item.offer,
-        })),
-        status: "New",
-        createdAt: new Date(),
-      });
+  orderId: uuidv4(),
+  shopId,
+  userId,
+  userName: user.fullName,
+  userPhone: user.PhoneNumber,
+  userLocation: location,
+  totalPrice,
+  products: items.map(item => {
+    let finalPrice = item.price;
+
+    // ✅ Apply discount if offer is valid
+    if (
+      item.offer &&
+      item.offer.discountPercentage &&
+      new Date(item.offer.expiresAt) > new Date()
+    ) {
+      finalPrice = +(item.price * (1 - item.offer.discountPercentage / 100)).toFixed(2);
+    }
+
+    return {
+      shopId,
+      productId: item.productId,
+      title: item.title,
+      price: finalPrice, // ✅ Store final price after discount
+      quantity: item.quantity,
+      selectedColor: item.selectedColor,
+      selectedSize: item.selectedSize,
+    };
+  }),
+  status: "New",
+  createdAt: new Date(),
+});
+
 
       await order.save();
       createdOrders.push(order);
@@ -819,7 +830,7 @@ app.post("/orders/:userId", async (req, res) => {
         const size = color?.sizes.find(s => s.size === item.selectedSize);
 
         if (size?.stock === 0) {
-          await axios.post("http://localhost:5000/notify-soldout", {
+          await axios.post("http://172.20.10.4:5000/notify-soldout", {
             shopId,
             productId: product._id.toString(),
             color: item.selectedColor,

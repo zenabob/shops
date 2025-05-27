@@ -6,46 +6,39 @@ import {
   TextInput,
   ImageBackground,
   Image,
-  Dimensions,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ScrollView,
+  SafeAreaView,
 } from "react-native";
 
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-
 const HomeScreen = () => {
   const navigation = useNavigation();
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({ email: "", password: "" });
 
   const handleInputChange = (name, value) => {
     setForm({ ...form, [name]: value });
   };
-  const [errors, setErrors] = useState({
-    email: '',
-    password: '',
-  });
-  
+
   const handleLogin = async () => {
-    setErrors({ email: '', password: '' }); // Reset errors
-  
+    setErrors({ email: "", password: "" });
+
     if (!form.email.trim() || !form.password.trim()) {
       setErrors({
-        email: !form.email.trim() ? 'Email is required' : '',
-        password: !form.password.trim() ? 'Password is required' : '',
+        email: !form.email.trim() ? "Email is required" : "",
+        password: !form.password.trim() ? "Password is required" : "",
       });
       return;
     }
-  
+
     setLoading(true);
     try {
       const response = await fetch("http://172.20.10.4:5001/login", {
@@ -53,9 +46,9 @@ const HomeScreen = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-  
+
       const data = await response.json();
-  
+
       if (response.ok) {
         const userId = data.user?._id;
         if (userId) {
@@ -63,10 +56,10 @@ const HomeScreen = () => {
           navigation.navigate("Main");
         }
       } else {
-        if (data.message === 'Email not found') {
-          setErrors({ email: 'This email is not registered', password: '' });
-        } else if (data.message === 'Incorrect password') {
-          setErrors({ email: '', password: 'Incorrect password' });
+        if (data.message === "Email not found") {
+          setErrors({ email: "This email is not registered", password: "" });
+        } else if (data.message === "Incorrect password") {
+          setErrors({ email: "", password: "Incorrect password" });
         } else {
           Alert.alert("Login Failed", data.message || "Unknown error.");
         }
@@ -77,137 +70,144 @@ const HomeScreen = () => {
       setLoading(false);
     }
   };
-  
+
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
+    <ImageBackground
+      source={require("../assets/img/Background img.png")}
+      style={styles.background}
+      resizeMode="cover"
     >
-      <ImageBackground
-        source={require("../assets/img/Background img.png")}
-        style={styles.background}
-        resizeMode="cover"
-      >
-        <View style={styles.container}>
-          <Image
-            source={require("../assets/img/logo.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-
-          <Text style={styles.title}>Login</Text>
-
-          {/* Email Input */}
-          <TextInput
-            style={styles.input}
-            placeholder="email@domain.com"
-            placeholderTextColor="#A9A9A9"
-            keyboardType="email-address"
-            onChangeText={(text) => handleInputChange("email", text)}
-          />
-{errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
-
-
-          {/* Password Input with Eye Icon */}
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.inputField}
-              placeholder="Password"
-              placeholderTextColor="#A9A9A9"
-              secureTextEntry={!passwordVisible}
-              onChangeText={(text) => handleInputChange("password", text)}
+      <SafeAreaView style={{ flex: 1 }}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Image
+              source={require("../assets/img/logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
             />
-            <TouchableOpacity
-              onPress={() => setPasswordVisible(!passwordVisible)}
+
+            <Text style={styles.title}>Login</Text>
+
+            <TextInput
+              style={[styles.input, errors.email && styles.inputError]}
+              placeholder="email@domain.com"
+              placeholderTextColor="#A9A9A9"
+              keyboardType="email-address"
+              onChangeText={(text) => handleInputChange("email", text)}
+              value={form.email}
+            />
+            {errors.email ? (
+              <Text style={styles.errorText}>{errors.email}</Text>
+            ) : null}
+
+            <View
+              style={[
+                styles.inputContainer,
+                errors.password && styles.inputError,
+              ]}
             >
-              <Image
-                source={require("../assets/img/ShowPassword.png")}
-                style={styles.icon}
+              <TextInput
+                style={styles.inputField}
+                placeholder="Password"
+                placeholderTextColor="#A9A9A9"
+                secureTextEntry={!passwordVisible}
+                onChangeText={(text) => handleInputChange("password", text)}
+                value={form.password}
               />
+              <TouchableOpacity
+                onPress={() => setPasswordVisible(!passwordVisible)}
+              >
+                <Image
+                  source={require("../assets/img/ShowPassword.png")}
+                  style={styles.icon}
+                />
+              </TouchableOpacity>
+            </View>
+            {errors.password ? (
+              <Text style={styles.errorText}>{errors.password}</Text>
+            ) : null}
+
+            <TouchableOpacity
+              onPress={() => navigation.navigate("ForgetPassword")}
+            >
+              <Text style={styles.forgotPassword}>Forgot Password?</Text>
             </TouchableOpacity>
-          </View>
-          {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
 
-          {/* Forgot Password */}
-          <TouchableOpacity
-            onPress={() => navigation.navigate("ForgetPassword")}
-          >
-            <Text style={styles.forgotPassword}>Forgot Password ?</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.continueButton}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              <Text style={styles.continueButtonText}>
+                {loading ? "Loading..." : "Continue"}
+              </Text>
+            </TouchableOpacity>
 
-          {/* Continue Button */}
-          <TouchableOpacity
-            style={styles.continueButton}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            <Text style={styles.continueButtonText}>
-              {loading ? "Loading..." : "Continue"}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Create Account */}
-          <TouchableOpacity
-            onPress={() => navigation.navigate("CreateAccount")}
-          >
-            <Text style={styles.createAccount}>Create account</Text>
-          </TouchableOpacity>
-        </View>
-      </ImageBackground>
-    </KeyboardAvoidingView>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("CreateAccount")}
+            >
+              <Text style={styles.createAccount}>Create account</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
   background: {
     flex: 1,
+  },
+  scrollContainer: {
+    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-    height:'150%'
-  },
-  container: {
-    width: "85%",
-    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   logo: {
-    width: SCREEN_WIDTH * 1.2,
-    height: SCREEN_HEIGHT * 0.6,
-    top: SCREEN_HEIGHT * -0.079,
-    justifyContent: "center",
+    width: 500,
+    height: 400,
+    marginBottom: 50,
+    marginTop:-130,
   },
   title: {
-    fontSize: 40,
+    fontSize: 36,
     fontWeight: "bold",
     color: "#fff",
-    marginBottom: 20,
-    top: SCREEN_HEIGHT * -0.2,
+    marginBottom: 25,
+    marginTop:-100,
   },
   input: {
     width: "100%",
     height: 50,
-    backgroundColor: "white",
+    backgroundColor: "#fff",
     borderRadius: 10,
     paddingHorizontal: 15,
     fontSize: 16,
-    marginBottom: 15,
-    elevation: 3,
-    top: SCREEN_HEIGHT * -0.17,
+    marginBottom: 10,
+    elevation: 2,
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
+    backgroundColor: "#fff",
     width: "100%",
     borderRadius: 10,
     paddingHorizontal: 15,
-    marginBottom: 15,
-    elevation: 3,
-    top: SCREEN_HEIGHT * -0.17,
+    height: 50,
+    marginBottom: 10,
+    elevation: 2,
   },
   inputField: {
     flex: 1,
-    height: 50,
     fontSize: 16,
   },
   icon: {
@@ -216,60 +216,42 @@ const styles = StyleSheet.create({
     tintColor: "gray",
   },
   forgotPassword: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "black",
-    alignSelf: "flex-start",
-    marginBottom: 15,
-    left: -105,
-    top: SCREEN_HEIGHT * -0.17,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#000",
+    alignSelf: "flex-end",
+    marginBottom: 20,
+    marginRight:254,
   },
   continueButton: {
     width: "100%",
     height: 50,
-    backgroundColor: "black",
+    backgroundColor: "#000",
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 15,
-    top: SCREEN_HEIGHT * -0.17,
+    marginBottom: 20,
   },
   continueButtonText: {
-    color: "white",
+    color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
   },
-  googleButton: {
-    width: "100%",
-    height: 50,
-    backgroundColor: "white",
-    borderRadius: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 15,
-    marginBottom: 10,
-    elevation: 3,
-    justifyContent: "center",
-    alignItems: "center",
-    top: SCREEN_HEIGHT * -0.17,
-  },
-  socialIcon: {
-    width: 25,
-    height: 25,
-    marginRight: 10,
-    backgroundColor: "white",
-    color: "white",
-  },
-  socialButtonText: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
   createAccount: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "bold",
-    textAlign: "center",
+    color: "#333",
     marginTop: 10,
-    top: SCREEN_HEIGHT * -0.17,
+  },
+  inputError: {
+    borderWidth: 1.5,
+    borderColor: "red",
+  },
+  errorText: {
+    color: "red",
+    fontSize: 13,
+    alignSelf: "flex-start",
+    marginBottom: 5,
   },
 });
 

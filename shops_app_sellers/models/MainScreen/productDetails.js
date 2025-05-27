@@ -277,6 +277,7 @@ const ProductDetails = ({
                           paddingHorizontal: 10,
                           borderRadius: 4,
                         },
+                        s.stock === 0 && { backgroundColor: "#77BBA2" },
                       ]}
                     >
                       <Text

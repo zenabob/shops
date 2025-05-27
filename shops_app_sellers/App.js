@@ -52,7 +52,7 @@ function MainDrawer({ userId, shopId }) {
     const interval = setInterval(fetchCount, 10000);
 
     const unsubscribe = navigation.addListener("focus", () => {
-      fetchCount(); // ← تحدث عند التركيز على القائمة
+      fetchCount(); 
     });
 
     return () => {
@@ -79,7 +79,7 @@ function MainDrawer({ userId, shopId }) {
     <NotificationsScreen
       {...props}
       shopId={shopId}
-      onUpdateCount={setNotificationCount} // ✅ هنا نمررها
+      onUpdateCount={setNotificationCount} 
     />
   )}
 </Drawer.Screen>

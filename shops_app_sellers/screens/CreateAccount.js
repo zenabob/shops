@@ -7,16 +7,16 @@ import {
   ImageBackground,
   TouchableOpacity,
   ScrollView,
-  Image, 
+  Image,
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
-  Keyboard
+  Keyboard,
 } from "react-native";
-import { useNavigation } from '@react-navigation/native';
-
+import { useNavigation } from "@react-navigation/native";
+import { Alert } from "react-native";
 const RegisterScreen = () => {
-  const navigation = useNavigation(); 
+  const navigation = useNavigation();
   const [form, setForm] = useState({
     shopName: "",
     fullName: "",
@@ -40,14 +40,13 @@ const RegisterScreen = () => {
   const validateForm = async () => {
     let newErrors = {};
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; 
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&\/])[A-Za-z\d@$!%*?&\/]{6,14}$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&\/])[A-Za-z\d@$!%*?&\/]{6,14}$/;
     const nameLocationRegex = /^[A-Za-z\s]+$/;
 
     if (!form.shopName.trim()) {
       newErrors.shopName = "Shop's Name is required";
-    } else if (!nameLocationRegex.test(form.shopName)) {
-      newErrors.shopName = "Shop's Name can only contain letters and spaces";
     }
 
     if (!form.fullName.trim()) {
@@ -88,7 +87,6 @@ const RegisterScreen = () => {
       newErrors.phoneNumber = "Invalid phone number";
     }
 
-
     setErrors((prevErrors) => ({ ...prevErrors, ...newErrors }));
     return Object.keys(newErrors).length === 0;
   };
@@ -96,7 +94,7 @@ const RegisterScreen = () => {
   const handleSubmit = async () => {
     const isValid = await validateForm();
     if (!isValid) return;
-  
+
     setLoading(true);
     try {
       const response = await fetch("http://172.20.10.4:5000/create-account", {
@@ -107,23 +105,26 @@ const RegisterScreen = () => {
           phoneNumber: String(form.phoneNumber), // Convert phoneNumber to String
         }),
       });
-  
+
       const text = await response.text();
       console.log("Server Response:", text);
-  
+
       if (!text) {
         throw new Error("Empty response from server");
       }
-  
+
       const data = JSON.parse(text);
-  
+
       if (response.ok) {
-  alert("Your account has been created. An admin will contact you for verification.");
-  navigation.navigate("Home");
-}
- else {
+        Alert.alert(
+          "",
+          "Your account has been created. An admin will contact you for verification.",
+          [{ text: "OK", onPress: () => navigation.navigate("Home") }]
+        );
+        navigation.navigate("Home");
+      } else {
         console.log("Error:", data.error);
-        setErrors(data.error || {}); 
+        setErrors(data.error || {});
       }
     } catch (error) {
       console.error("Error:", error);
@@ -132,8 +133,6 @@ const RegisterScreen = () => {
       setLoading(false);
     }
   };
-  
-  
 
   return (
     <KeyboardAvoidingView
@@ -146,7 +145,10 @@ const RegisterScreen = () => {
           style={styles.background}
           resizeMode="cover"
         >
-          <TouchableOpacity onPress={() => navigation.navigate("Home")} style={styles.arrowContainer}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Home")}
+            style={styles.arrowContainer}
+          >
             <Image
               source={require("../assets/img/Arrow Left Contained 01.png")}
               style={styles.arrow}
@@ -154,74 +156,102 @@ const RegisterScreen = () => {
             />
           </TouchableOpacity>
 
-          <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            
+          <ScrollView
+            contentContainerStyle={styles.container}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {Object.keys(errors).length > 0 && (
-              <Text style={styles.errorText}>{errors.general || "Please fix the errors below"}</Text>
+              <Text style={styles.errorText}>
+                {errors.general || "Please fix the errors below"}
+              </Text>
             )}
 
             <Text style={styles.label}>Shop's Name</Text>
-            <TextInput 
+            <TextInput
               style={[styles.input, errors.shopName && styles.inputError]}
               placeholder="Enter your shop's name"
               placeholderTextColor="#A9A9A9"
               onChangeText={(text) => handleInputChange("shopName", text)}
             />
-            {errors.shopName && <Text style={styles.errorText}>{errors.shopName}</Text>}
+            {errors.shopName && (
+              <Text style={styles.errorText}>{errors.shopName}</Text>
+            )}
 
             <Text style={styles.label}>Full Name</Text>
-            <TextInput 
+            <TextInput
               style={[styles.input, errors.fullName && styles.inputError]}
               placeholder="Enter your full name"
               placeholderTextColor="#A9A9A9"
               onChangeText={(text) => handleInputChange("fullName", text)}
             />
-            {errors.fullName && <Text style={styles.errorText}>{errors.fullName}</Text>}
+            {errors.fullName && (
+              <Text style={styles.errorText}>{errors.fullName}</Text>
+            )}
 
             <Text style={styles.label}>Email</Text>
-            <TextInput 
+            <TextInput
               style={[styles.input, errors.email && styles.inputError]}
               placeholder="Enter your email"
               placeholderTextColor="#A9A9A9"
               keyboardType="email-address"
               onChangeText={(text) => handleInputChange("email", text)}
             />
-            {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+            {errors.email && (
+              <Text style={styles.errorText}>{errors.email}</Text>
+            )}
             <Text style={styles.label}>Password</Text>
-            <TextInput style={[styles.input, errors.password && styles.inputError]}
+            <TextInput
+              style={[styles.input, errors.password && styles.inputError]}
               placeholder="Enter your password"
               placeholderTextColor="#A9A9A9"
               secureTextEntry
               onChangeText={(text) => handleInputChange("password", text)}
             />
-            {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+            {errors.password && (
+              <Text style={styles.errorText}>{errors.password}</Text>
+            )}
 
             <Text style={styles.label}>Confirm Password</Text>
-            <TextInput style={[styles.input, errors.confirmPassword && styles.inputError]}
+            <TextInput
+              style={[
+                styles.input,
+                errors.confirmPassword && styles.inputError,
+              ]}
               placeholder="Confirm your password"
               placeholderTextColor="#A9A9A9"
               secureTextEntry
-              onChangeText={(text) => handleInputChange("confirmPassword", text)}
+              onChangeText={(text) =>
+                handleInputChange("confirmPassword", text)
+              }
             />
-            {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
+            {errors.confirmPassword && (
+              <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+            )}
 
             <Text style={styles.label}>Location</Text>
-            <TextInput style={[styles.input, errors.location && styles.inputError]}
+            <TextInput
+              style={[styles.input, errors.location && styles.inputError]}
               placeholder="Enter your location"
               placeholderTextColor="#A9A9A9"
               onChangeText={(text) => handleInputChange("location", text)}
             />
-            {errors.location && <Text style={styles.errorText}>{errors.location}</Text>}
+            {errors.location && (
+              <Text style={styles.errorText}>{errors.location}</Text>
+            )}
 
             <Text style={styles.label}>Phone number</Text>
-            <TextInput style={[styles.input, errors.phoneNumber && styles.inputError]}
+            <TextInput
+              style={[styles.input, errors.phoneNumber && styles.inputError]}
               placeholder="Enter your Phone number"
               placeholderTextColor="#A9A9A9"
               keyboardType="phone-pad"
               onChangeText={(text) => handleInputChange("phoneNumber", text)}
               value={form.phoneNumber}
             />
-            {errors.phoneNumber && <Text style={styles.errorText}>{errors.phoneNumber}</Text>}
+            {errors.phoneNumber && (
+              <Text style={styles.errorText}>{errors.phoneNumber}</Text>
+            )}
             <Text style={styles.label}>Percent</Text>
             <TextInput
               style={styles.input}
@@ -244,7 +274,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    height:"150%",
+    height: "150%",
   },
   scrollContainer: {
     flexGrow: 1,
@@ -253,9 +283,9 @@ const styles = StyleSheet.create({
     // paddingBottom: 30, // Prevents last input from being hidden
   },
   container: {
-    width: '70%',
-    alignItems: 'center',
-    top :100, 
+    width: "70%",
+    alignItems: "center",
+    top: 100,
     paddingBottom: 120,
   },
   label: {
@@ -263,9 +293,9 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "black",
     marginBottom: 5,
-    right:10,
+    right: 10,
     paddingHorizontal: 15,
-    alignSelf: "flex-start", 
+    alignSelf: "flex-start",
   },
   input: {
     width: 300,
@@ -275,11 +305,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     fontSize: 16,
     marginBottom: 5,
-  
   },
   inputError: {
     borderWidth: 2,
-    borderColor: "red", 
+    borderColor: "red",
   },
   errorText: {
     color: "red",
@@ -290,10 +319,10 @@ const styles = StyleSheet.create({
   button: {
     width: 200,
     height: 50,
-    backgroundColor: 'black',
+    backgroundColor: "black",
     borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 15,
   },
   buttonText: {
@@ -301,12 +330,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-  arrow:{
+  arrow: {
     width: 40,
     height: 35,
     top: 75,
-    left:-170,
-  }
+    left: -170,
+  },
 });
 
 export default RegisterScreen;

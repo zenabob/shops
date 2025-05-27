@@ -153,7 +153,18 @@ const CartScreen = () => {
         saved += (originalPrice - actualPrice) * quantity;
       }
 
-      total += actualPrice * quantity;
+      let finalPrice = item.price;
+
+if (
+  item.offer &&
+  item.offer.discountPercentage &&
+  new Date(item.offer.expiresAt) > new Date()
+) {
+  finalPrice = +(item.price * (1 - item.offer.discountPercentage / 100)).toFixed(2);
+}
+
+total += finalPrice * item.quantity;
+
     });
 
     return {
@@ -347,7 +358,7 @@ else if (item.quantity > availableStock) {
               }
             }
           },
-        }, // 👈 DON'T forget this comma here
+        }, 
         {
           text: "No",
           style: "cancel",

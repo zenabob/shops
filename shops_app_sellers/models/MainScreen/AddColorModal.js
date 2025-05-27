@@ -12,6 +12,7 @@ import {
   StyleSheet,
 } from "react-native";
 import axios from "axios";
+import { Alert } from "react-native";
 const AddColorModal = ({
   visible,
   newColor,
@@ -306,7 +307,7 @@ const AddColorModal = ({
                   await fetchCategoriesWithProducts();
                 } catch (err) {
                   console.error("Error saving color set:", err);
-                  alert("Error saving");
+                  Alert.alert("Error", "Something went wrong");
                 }
               }}
             >

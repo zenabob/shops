@@ -230,7 +230,7 @@ app.post("/loginSeller", async (req, res) => {
 
 
 // Reset password
-app.post("/reset-password/:userId", async (req, res) => {
+app.post("/reset-password", async (req, res) => {
   try {
     const { email, password, confirmPassword } = req.body;
     const user = await User.findOne({ email });
@@ -312,8 +312,7 @@ app.post(
 );
 
 // Upload cover
-app.post(
-  "/profile/:userId/upload-cover",
+app.post("/profile/:userId/upload-cover",
   upload.single("image"),
   async (req, res) => {
     try {

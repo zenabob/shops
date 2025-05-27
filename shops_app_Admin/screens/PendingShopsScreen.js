@@ -15,7 +15,7 @@ const PendingShopsScreen = () => {
   const [pendingShops, setPendingShops] = useState([]);
 const rejectShop = async (shopId) => {
   try {
-    await axios.delete(`http://localhost:5002/admin/delete-shop/${shopId}`);
+    await axios.delete(`http://172.20.10.4:5002/admin/delete-shop/${shopId}`);
     setPendingShops((prev) => prev.filter((shop) => shop._id !== shopId));
   } catch (error) {
     console.error("Error rejecting shop", error);
@@ -24,7 +24,7 @@ const rejectShop = async (shopId) => {
 
   const fetchPendingShops = async () => {
     try {
-      const res = await axios.get("http://localhost:5002/admin/pending-shops");
+      const res = await axios.get("http://172.20.10.4:5002/admin/pending-shops");
       setPendingShops(res.data);
     } catch (error) {
       console.error("Error fetching pending shops", error);
@@ -40,7 +40,7 @@ const rejectShop = async (shopId) => {
 
   const approveShop = async (shopId) => {
     try {
-      await axios.put(`http://localhost:5002/admin/approve-shop/${shopId}`);
+      await axios.put(`http://172.20.10.4:5002/admin/approve-shop/${shopId}`);
       setPendingShops((prev) => prev.filter((shop) => shop._id !== shopId));
     } catch (error) {
       console.error("Error approving shop", error);
@@ -66,7 +66,7 @@ const rejectShop = async (shopId) => {
         <Text>Location: {item.location}</Text>
         <View style={{ flexDirection: "row", marginTop: 10 }}>
   <TouchableOpacity
-    style={[styles.button, { backgroundColor: "green", marginRight: 10 }]}
+    style={[styles.button, { backgroundColor: "#77BBA2", marginRight: 10 }]}
     onPress={() => approveShop(item._id)}
   >
     <Text style={styles.buttonText}>Approve</Text>
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   },
   approveButton: {
     marginTop: 10,
-    backgroundColor: "green",
+    backgroundColor: "#77BBA2",
     padding: 8,
     borderRadius: 5,
   },

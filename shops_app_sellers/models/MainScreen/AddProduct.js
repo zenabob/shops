@@ -11,7 +11,6 @@ import {
   Image,
   StyleSheet,
 } from "react-native";
-
 const AddProduct = ({
     visible,
     selectedCategory,

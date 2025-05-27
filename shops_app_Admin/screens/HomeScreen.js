@@ -42,7 +42,7 @@ const HomeScreen = () => {
 
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:5002/loginSeller", {
+      const response = await fetch("http://172.20.10.4:5002/loginAdmin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -140,9 +140,7 @@ const HomeScreen = () => {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => navigation.navigate("CreateAccount")}>
-              <Text style={styles.createAccount}>Create account</Text>
-            </TouchableOpacity>
+          
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -163,15 +161,18 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   logo: {
-    width: 250,
-    height: 180,
+    width: 550,
+    height: 500,
     marginBottom: 10,
+    marginTop: -100,
   },
   title: {
-    fontSize: 34,
+    fontSize: 45,
     fontWeight: "bold",
     color: "#77BBA2",
-    marginBottom: 20,
+    marginBottom: 55,
+    marginTop: -100,
+
   },
   input: {
     width: "100%",

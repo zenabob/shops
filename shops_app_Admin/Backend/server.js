@@ -70,8 +70,7 @@ const ShopSchema = new mongoose.Schema({
 const Shop = mongoose.model("Shops", ShopSchema);
 
 
-// ✅ Route تسجيل الدخول
-app.post("/loginSeller", async (req, res) => {
+app.post("/loginAdmin", async (req, res) => {
   const { email, password } = req.body;
 
   try {
@@ -287,6 +286,30 @@ app.put("/admin/remove-approval/:shopId", async (req, res) => {
     res.json({ message: "Shop moved back to pending", shop });
   } catch (err) {
     console.error("Error removing approval:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+app.post("/admin/create", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Simple validation
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    // Check if admin already exists
+    const existing = await Admin.findOne({ email });
+    if (existing) {
+      return res.status(409).json({ message: "Admin already exists" });
+    }
+
+    const newAdmin = new Admin({ email, password });
+    await newAdmin.save();
+
+    res.status(201).json({ message: "Admin created successfully" });
+  } catch (err) {
+    console.error("❌ Error creating admin:", err);
     res.status(500).json({ message: "Server error" });
   }
 });

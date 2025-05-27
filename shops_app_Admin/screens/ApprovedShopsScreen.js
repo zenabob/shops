@@ -8,7 +8,7 @@ const ApprovedShopsScreen = () => {
   const [loading, setLoading] = useState(true);
 const removeApproval = async (shopId) => {
   try {
-    await axios.put(`http://localhost:5002/admin/remove-approval/${shopId}`);
+    await axios.put(`http://172.20.10.4:5002/admin/remove-approval/${shopId}`);
     setShops((prev) => prev.filter((shop) => shop._id !== shopId));
   } catch (error) {
     console.error("Failed to remove approval", error);
@@ -17,7 +17,7 @@ const removeApproval = async (shopId) => {
 
   const fetchShops = async () => {
     try {
-      const res = await axios.get("http://localhost:5002/admin/shops");
+      const res = await axios.get("http://172.20.10.4:5002/admin/shops");
       const approved = res.data.filter(shop => shop.status === "approved");
       setShops(approved);
     } catch (error) {
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   removeButton: {
-  color: "#FFA500", 
+  color: "red",
   fontWeight: "bold",
   marginTop: 5,
 },

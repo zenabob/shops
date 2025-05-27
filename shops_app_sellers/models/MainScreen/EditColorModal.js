@@ -14,6 +14,7 @@ import {
   ScrollView
 } from "react-native";
 import axios from "axios";
+import { Alert } from "react-native";
 const EditColorModal = ({
   visible,
   colorForm,
@@ -299,7 +300,7 @@ const EditColorModal = ({
                       setColorModalVisible(false);
                     } catch (err) {
                       console.error("Error saving color:", err);
-                      alert("Failed to save color details");
+                      Alert.alert("Failed to save color details");
                     }
                     await fetchCategoriesWithProducts();
                   }}

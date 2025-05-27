@@ -10,6 +10,7 @@ import {
   Dimensions,
   FlatList,
   ScrollView,
+  Alert,
 } from "react-native";
 import { TouchableWithoutFeedback, Keyboard } from "react-native";
 import { useNavigation } from "@react-navigation/native";
@@ -184,14 +185,15 @@ const MainScreen = () => {
       setShowDetailModal(true);
     } catch (error) {
       console.error("❌ Error fetching full product details:", error);
-      alert("Failed to load product details.");
+      
+      Alert.alert("Failed to load product details.");
     }
   };
 
   const handleAddToCart = async (cartItem) => {
   try {
     if (!userId) {
-      alert("User not logged in");
+      Alert.alert("User not logged in");
       return;
     }
 
@@ -218,13 +220,13 @@ const MainScreen = () => {
 
     const text = await response.text();
     if (response.ok) {
-      alert("Product added to cart!");
+      Alert.alert("Product added to cart!");
     } else {
-      alert("Error: " + text);
+      Alert.alert("Error: " + text);
     }
   } catch (err) {
     console.error("Error adding to cart:", err);
-    alert("Something went wrong");
+    Alert.alert("Something went wrong");
   }
 };
 

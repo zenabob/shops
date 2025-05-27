@@ -201,7 +201,7 @@ const ShopProfileScreen = () => {
         const mediaStatus =
           await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!cameraStatus.granted || !mediaStatus.granted) {
-          alert(
+          Alert.alert(
             "Sorry, we need camera and media permissions to make this work!"
           );
         }
@@ -257,7 +257,7 @@ const ShopProfileScreen = () => {
         const uploadedUrl = await uploadColorImage(uri); // ✅ Reuse your existing function
 
         if (!uploadedUrl) {
-          alert("Failed to upload preview image");
+          Alert.alert("Failed to upload preview image");
           return;
         }
 
@@ -477,7 +477,7 @@ const ShopProfileScreen = () => {
       await fetchCategoriesWithProducts();
     } catch (err) {
       console.error("Error deleting image from gallery:", err);
-      alert("Failed to delete image from color");
+      Alert.alert("Failed to delete image from color");
     }
   };
 
@@ -548,7 +548,7 @@ const ShopProfileScreen = () => {
       await fetchCategoriesWithProducts(); // optional: refresh entire list if needed
     } catch (err) {
       console.error("Failed to save color deletion:", err);
-      alert("Error deleting color");
+      Alert.alert("Error deleting color");
     }
   };
   const openCategorySelector = () => {
@@ -573,7 +573,7 @@ const ShopProfileScreen = () => {
 
   const handleAddImage = async () => {
     if (selectedColorImages.length >= 7) {
-      alert("You can only have up to 7 images per color.");
+      Alert.alert("You can only have up to 7 images per color.");
       return;
     }
 
@@ -646,7 +646,7 @@ const ShopProfileScreen = () => {
             await fetchCategoriesWithProducts();
           } catch (err) {
             console.error("❌ Error saving added image:", err);
-            alert("Failed to save image");
+            Alert.alert("Failed to save image");
           }
         }
       }
@@ -654,7 +654,7 @@ const ShopProfileScreen = () => {
   };
   const handleUpdateCategory = async (oldCategoryName) => {
     const trimmed = editedCategoryName.trim();
-    if (!trimmed) return alert("Category name cannot be empty");
+    if (!trimmed) return Alert.alert("Category name cannot be empty");
 
     try {
       await axios.put(
@@ -669,7 +669,7 @@ const ShopProfileScreen = () => {
       setEditedCategoryName("");
     } catch (err) {
       console.error("Error updating category:", err);
-      alert("Something went wrong while updating the category");
+      Alert.alert("Something went wrong while updating the category");
     }
   };
 
@@ -688,7 +688,7 @@ const ShopProfileScreen = () => {
     const remainingSlots = 6 - newColor.images.length;
 
     if (remainingSlots <= 0) {
-      alert("You can only upload up to 6 images for this color.");
+      Alert.alert("You can only upload up to 6 images for this color.");
       return;
     }
 
@@ -983,11 +983,11 @@ const ShopProfileScreen = () => {
   };
   const handleAddCategory = async () => {
     const trimmed = newCategory.trim();
-    if (!trimmed) return alert("Please enter a category name");
+    if (!trimmed) return Alert.alert("Please enter a category name");
     const exists = categories.some(
       (cat) => cat.toLowerCase() === trimmed.toLowerCase()
     );
-    if (exists) return alert("This category already exists!");
+    if (exists) return Alert.alert("This category already exists!");
     try {
       const res = await axios.post(
         `http://172.20.10.4:5000/profile/${userId}/category`,

@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  Alert,
 } from "react-native";
 import axios from "axios";
 import { ImageBackground } from "react-native";
@@ -52,7 +53,7 @@ useEffect(() => {
   const handleAddToCart = async (cartItem) => {
     try {
       if (!userId) {
-        alert("User not logged in");
+        Alert.alert("User not logged in");
         return;
       }
 
@@ -77,13 +78,13 @@ useEffect(() => {
       console.log("🔍 Raw response:", text);
 
       if (response.ok) {
-        alert("Product added to cart!");
+        Alert.alert("Product added to cart!");
       } else {
-        alert("Error: " + text);
+        Alert.alert("Error: " + text);
       }
     } catch (err) {
       console.error("❌ Error adding to cart:", err);
-      alert("Something went wrong");
+      Alert.alert("Something went wrong");
     }
   };
 
