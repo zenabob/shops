@@ -15,6 +15,8 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Alert } from "react-native";
+import {API_BASE_URL} from "../config";
+
 const RegisterScreen = () => {
   const navigation = useNavigation();
   const [form, setForm] = useState({
@@ -97,7 +99,7 @@ const RegisterScreen = () => {
 
     setLoading(true);
     try {
-      const response = await fetch("http://172.20.10.4:5000/create-account", {
+      const response = await fetch(`${API_BASE_URL}/create-account`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

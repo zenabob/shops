@@ -14,6 +14,7 @@ import { ImageBackground } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import ProductDetails from "../modals/ProductDetails";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {API_BASE_URL} from "../config";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -58,7 +59,7 @@ useEffect(() => {
       }
 
       const response = await fetch(
-        `http://172.20.10.4:5001/profile/${userId}/cart`,
+        `${API_BASE_URL}/profile/${userId}/cart`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -90,7 +91,7 @@ useEffect(() => {
 
   const fetchShopData = async () => {
     try {
-      const res = await axios.get(`http://172.20.10.4:5000/profile/${shopId}`);
+      const res = await axios.get(`${API_BASE_URL}/profile/${shopId}`);
       setShopData(res.data);
     } catch (err) {
       console.error("Error fetching shop data:", err);
@@ -100,7 +101,7 @@ useEffect(() => {
   const fetchCategories = async () => {
     try {
       const res = await axios.get(
-        `http://172.20.10.4:5000/profile/${shopId}/category`
+        `${API_BASE_URL}/profile/${shopId}/category`
       );
       setCategories(res.data);
     } catch (err) {
@@ -111,7 +112,7 @@ useEffect(() => {
   const fetchCategoriesWithProducts = async () => {
     try {
       const res = await axios.get(
-        `http://172.20.10.4:5000/profile/${shopId}/categories-with-products`
+        `${API_BASE_URL}/profile/${shopId}/categories-with-products`
       );
       const result = {};
       res.data.forEach((category) => {

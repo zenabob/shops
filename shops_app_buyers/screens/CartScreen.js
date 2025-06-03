@@ -13,6 +13,8 @@ import {
 import axios from "axios";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { Swipeable, RectButton } from "react-native-gesture-handler";
+import {API_BASE_URL} from "../config";
+import { SELLER_API_BASE_URL } from "../seller-api";
 
 const CartScreen = () => {
   const route = useRoute();
@@ -37,7 +39,7 @@ const CartScreen = () => {
   const fetchCart = async () => {
     try {
       const res = await axios.get(
-        `http://172.20.10.4:5001/profile/${userId}/cart`
+        `${API_BASE_URL}/profile/${userId}/cart`
       );
       const freshCart = res.data;
 
@@ -46,7 +48,7 @@ const CartScreen = () => {
 
       for (let item of freshCart) {
         const resProduct = await axios.get(
-          `http://172.20.10.4:5000/public/shop/${item.shopId._id}/product/${item.productId}`
+          `${SELLER_API_BASE_URL}/public/shop/${item.shopId._id}/product/${item.productId}`
         );
 
         const product = resProduct.data.product;
@@ -70,7 +72,7 @@ const CartScreen = () => {
   const fetchFavorites = async () => {
     try {
       const res = await axios.get(
-        `http://172.20.10.4:5001/user/${userId}/favorites`
+        `${API_BASE_URL}/user/${userId}/favorites`
       );
       setFavorites(res.data);
     } catch (err) {
@@ -80,7 +82,7 @@ const CartScreen = () => {
 
   const deleteFromCart = async (productId, color, size) => {
     try {
-      await axios.delete(`http://172.20.10.4:5001/profile/${userId}/cart`, {
+      await axios.delete(`${API_BASE_URL}/profile/${userId}/cart`, {
         data: { productId, selectedColor: color, selectedSize: size },
       });
       fetchCart();
@@ -92,7 +94,7 @@ const CartScreen = () => {
   const updateCartQuantity = async (productId, color, size, newQuantity) => {
     try {
       await axios.put(
-        `http://172.20.10.4:5001/profile/${userId}/cart/update-quantity`,
+        `${API_BASE_URL}/profile/${userId}/cart/update-quantity`,
         {
           productId,
           selectedColor: color,
@@ -112,7 +114,7 @@ const CartScreen = () => {
     try {
       if (isFav) {
         await axios.delete(
-          `http://172.20.10.4:5001/user/${userId}/favorites/${product.productId}`
+          `${API_BASE_URL}/user/${userId}/favorites/${product.productId}`
         );
       } else {
         const favoriteItem = {
@@ -124,7 +126,7 @@ const CartScreen = () => {
           shopId: product.shopId._id,
         };
         await axios.post(
-          `http://172.20.10.4:5001/user/${userId}/favorites`,
+          `${API_BASE_URL} /user/${userId}/favorites`,
           favoriteItem
         );
       }
@@ -233,7 +235,7 @@ total += finalPrice * item.quantity;
 
       for (const item of cart) {
         const res = await axios.get(
-          `http://172.20.10.4:5000/public/shop/${item.shopId._id}/product/${item.productId}`
+          `${SELLER_API_BASE_URL}/public/shop/${item.shopId._id}/product/${item.productId}`
         );
 
         const productData = res.data.product;
@@ -249,7 +251,7 @@ total += finalPrice * item.quantity;
        if (!selectedSize || availableStock === 0) {
   console.log("🟥 Sold out detected:", item);
 
-  await axios.delete(`http://172.20.10.4:5001/profile/${userId}/cart`, {
+  await axios.delete(`${API_BASE_URL}/profile/${userId}/cart`, {
     data: {
       productId: item.productId,
       selectedColor: item.selectedColor,
@@ -262,7 +264,7 @@ total += finalPrice * item.quantity;
 }
 else if (item.quantity > availableStock) {
           await axios.put(
-            `http://172.20.10.4:5001/profile/${userId}/cart/update-quantity`,
+            `${API_BASE_URL}/profile/${userId}/cart/update-quantity`,
             {
               productId: item.productId,
               selectedColor: item.selectedColor,
@@ -324,7 +326,7 @@ else if (item.quantity > availableStock) {
           onPress: async () => {
             try {
               const res = await axios.post(
-                `http://172.20.10.4:5001/orders/${userId}`,
+                `${API_BASE_URL}/orders/${userId}`,
                 {
                   location,
                   shippingCost,
@@ -432,10 +434,15 @@ else if (item.quantity > availableStock) {
                 >
                   <View style={styles.productCard}>
                     {product.image && (
-                      <Image
-                        source={{ uri: product.image }}
-                        style={styles.productImage}
-                      />
+                     <Image
+  source={{
+    uri: product.image?.startsWith("http")
+      ? product.image
+      : `${SELLER_API_BASE_URL}${product.image.startsWith("/") ? "" : "/"}${product.image}`,
+  }}
+  style={styles.productImage}
+/>
+
                     )}
                     <View style={styles.productDetails}>
                       <Text style={styles.title}>
@@ -486,7 +493,7 @@ else if (item.quantity > availableStock) {
                             onPress={async () => {
                               try {
                                 const res = await axios.get(
-                                  `http://172.20.10.4:5000/public/shop/${product.shopId._id}/product/${product.productId}`
+                                  `${SELLER_API_BASE_URL}/public/shop/${product.shopId._id}/product/${product.productId}`
                                 );
 
                                 const productData = res.data.product;

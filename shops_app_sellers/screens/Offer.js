@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
+import {API_BASE_URL} from "../config";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -41,7 +42,7 @@ const Offer = ({ userId, navigation }) => {
   const fetchAllProducts = async () => {
     try {
       const res = await axios.get(
-        `http://172.20.10.4:5000/profile/${userId}/categories-with-products`
+        `${API_BASE_URL}/profile/${userId}/categories-with-products`
       );
       const all = res.data.flatMap((cat) =>
         cat.products.map((p) => ({
@@ -115,7 +116,7 @@ const Offer = ({ userId, navigation }) => {
       await Promise.all(
         targets.map((product) =>
           axios.put(
-            `http://172.20.10.4:5000/profile/${userId}/category/${product.category}/product/${product._id}/offer`,
+            `${API_BASE_URL}/profile/${userId}/category/${product.category}/product/${product._id}/offer`,
             offerData
           )
         )
@@ -183,10 +184,15 @@ const Offer = ({ userId, navigation }) => {
               onPress={() => toggleProductSelection(item._id)}
               activeOpacity={0.8}
             >
-              <Image
-                source={{ uri: item.MainImage || item.image }}
-                style={styles.productImage}
-              />
+             <Image
+  source={{
+    uri: (item.MainImage || item.image)?.startsWith("http")
+      ? item.MainImage || item.image
+      : `${API_BASE_URL}${item.MainImage || item.image}`,
+  }}
+  style={styles.productImage}
+/>
+
               <Text numberOfLines={1} style={styles.productTitle}>
                 {item.title}
               </Text>

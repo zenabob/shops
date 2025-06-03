@@ -9,6 +9,8 @@ import {
   ScrollView,
 } from "react-native";
 import axios from "axios";
+import {API_BASE_URL} from "../config";
+import { SELLER_API_BASE_URL } from "../seller-api";
 
 const ProductDetails = ({
   visible,
@@ -57,7 +59,7 @@ const ProductDetails = ({
       if (!userId || !selectedProductDetails?._id) return;
       try {
         const res = await axios.get(
-          `http://172.20.10.4:5001/user/${userId}/favorites`
+          `${API_BASE_URL}/user/${userId}/favorites`
         );
         const found = res.data.find(
           (item) => item.productId === selectedProductDetails._id
@@ -75,7 +77,7 @@ const ProductDetails = ({
     const registerView = async () => {
       if (userId && selectedProductDetails?._id) {
         try {
-          await axios.post(`http://172.20.10.4:5001/user/${userId}/viewed`, {
+          await axios.post(`${API_BASE_URL}/user/${userId}/viewed`, {
             productId: selectedProductDetails._id,
           });
         } catch (error) {
@@ -93,7 +95,7 @@ const ProductDetails = ({
     try {
       if (isFavorite) {
         await axios.delete(
-          `http://172.20.10.4:5001/user/${userId}/favorites/${selectedProductDetails._id}`
+          `${API_BASE_URL}/user/${userId}/favorites/${selectedProductDetails._id}`
         );
         setIsFavorite(false);
         if (onFavoriteToggle) {
@@ -122,7 +124,7 @@ const ProductDetails = ({
         };
 
         await axios.post(
-          `http://172.20.10.4:5001/user/${userId}/favorites`,
+          `${API_BASE_URL}/user/${userId}/favorites`,
           favoriteItem
         );
         setIsFavorite(true);
@@ -147,7 +149,14 @@ const ProductDetails = ({
                     key={index}
                     onPress={() => setSelectedMainImage(img)}
                   >
-                    <Image source={{ uri: img }} style={styles.galleryImage} />
+<Image
+  source={{
+    uri: img?.startsWith("http")
+      ? img
+      : `${SELLER_API_BASE_URL}${img.startsWith("/") ? "" : "/"}${img}`,
+  }}
+  style={styles.galleryImage}
+/>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -155,9 +164,14 @@ const ProductDetails = ({
           <View style={styles.detailContent}>
             {selectedMainImage && (
               <Image
-                source={{ uri: selectedMainImage }}
-                style={styles.mainAlertImage}
-              />
+  source={{
+    uri: selectedMainImage?.startsWith("http")
+      ? selectedMainImage
+      : `${SELLER_API_BASE_URL}${selectedMainImage.startsWith("/") ? "" : "/"}${selectedMainImage}`,
+  }}
+  style={styles.mainAlertImage}
+/>
+
             )}
 
             <Text style={styles.productName} numberOfLines={9}>
@@ -203,9 +217,14 @@ const ProductDetails = ({
                   }}
                 >
                   <Image
-                    source={{ uri: c.previewImage }}
-                    style={styles.colorPreview}
-                  />
+  source={{
+    uri: c.previewImage?.startsWith("http")
+      ? c.previewImage
+      : `${SELLER_API_BASE_URL}${c.previewImage.startsWith("/") ? "" : "/"}${c.previewImage}`,
+  }}
+  style={styles.colorPreview}
+/>
+
                 </TouchableOpacity>
               ))}
             </ScrollView>

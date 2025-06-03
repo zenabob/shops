@@ -11,6 +11,7 @@ import {
   Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import {API_BASE_URL} from "../config";
 
 const ResetPasswordScreen = () => {
   const navigation = useNavigation();
@@ -65,7 +66,7 @@ const ResetPasswordScreen = () => {
     setLoading(true);
   
     try {
-      const response = await fetch("http://172.20.10.4:5001/reset-password", {
+      const response = await fetch(`${API_BASE_URL}/reset-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import EditColorModal from "../MainScreen/EditColorModal";
 import AddColorModal from "../MainScreen/AddColorModal";
+import { API_BASE_URL } from "../../config";
 
 const ProductDetails = ({
   visible,
@@ -69,47 +70,54 @@ const ProductDetails = ({
         <View style={styles.modalOverlay}>
           <View style={styles.alertContainer}>
             {/* Left Gallery Column */}
-            {selectedColorName && selectedProductDetails?.colors?.find((c) => c.name === selectedColorName) && (
-              <View style={styles.leftGalleryColumn}>
-                {(() => {
-                  const currentColor = selectedProductDetails?.colors?.find(
-                    (c) => c.name === selectedColorName
-                  );
-                  const preview = currentColor?.previewImage;
-                  const rest =
-                    currentColor?.images?.filter((img) => img !== preview) ||
-                    [];
-                  const orderedImages = preview ? [preview, ...rest] : rest;
+            {selectedColorName &&
+              selectedProductDetails?.colors?.find(
+                (c) => c.name === selectedColorName
+              ) && (
+                <View style={styles.leftGalleryColumn}>
+                  {(() => {
+                    const currentColor = selectedProductDetails?.colors?.find(
+                      (c) => c.name === selectedColorName
+                    );
+                    const preview = currentColor?.previewImage;
+                    const rest =
+                      currentColor?.images?.filter((img) => img !== preview) ||
+                      [];
+                    const orderedImages = preview ? [preview, ...rest] : rest;
 
-                  return orderedImages.map((img, index) => (
-                    <View key={index} style={styles.galleryImageWrapper}>
-                      <TouchableOpacity
-                        onPress={() => setSelectedMainImage(img)}
-                      >
-                        <Image
-                          source={{ uri: img }}
-                          style={styles.galleryImage}
-                        />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.deleteButton}
-                        onPress={() => handleDeleteGalleryImage(img)}
-                      >
-                        <Text style={styles.deleteText}>×</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ));
-                })()}
-                {selectedColorImages.length < 6 && (
-                  <TouchableOpacity
-                    style={styles.addImageBtn}
-                    onPress={handleAddImage}
-                  >
-                    <Text style={styles.addImageText}>＋</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
+                    return orderedImages.map((img, index) => (
+                      <View key={index} style={styles.galleryImageWrapper}>
+                        <TouchableOpacity
+                          onPress={() => setSelectedMainImage(img)}
+                        >
+                          <Image
+                            source={{
+                              uri: img?.startsWith("http")
+                                ? img
+                                : `${API_BASE_URL}${img}`,
+                            }}
+                            style={styles.galleryImage}
+                          />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.deleteButton}
+                          onPress={() => handleDeleteGalleryImage(img)}
+                        >
+                          <Text style={styles.deleteText}>×</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ));
+                  })()}
+                  {selectedColorImages.length < 6 && (
+                    <TouchableOpacity
+                      style={styles.addImageBtn}
+                      onPress={handleAddImage}
+                    >
+                      <Text style={styles.addImageText}>＋</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
 
             {/* Right Side Content */}
             <View style={styles.detailContent}>
@@ -134,7 +142,11 @@ const ProductDetails = ({
                 }}
               >
                 <Image
-                  source={{ uri: selectedMainImage }}
+                  source={{
+                    uri: selectedMainImage?.startsWith("http")
+                      ? selectedMainImage
+                      : `${API_BASE_URL}${selectedMainImage}`,
+                  }}
                   style={styles.mainAlertImage}
                 />
               </TouchableOpacity>
@@ -146,12 +158,10 @@ const ProductDetails = ({
               new Date(product.offer.expiresAt) > new Date() ? (
                 <>
                   <Text
-                    style={
-                      {
-                        textDecorationLine: "line-through",
-                        color: "gray",
-                      }
-                    }
+                    style={{
+                      textDecorationLine: "line-through",
+                      color: "gray",
+                    }}
                   >
                     {product?.price} ILS
                   </Text>
@@ -235,7 +245,11 @@ const ProductDetails = ({
                       }}
                     >
                       <Image
-                        source={{ uri: c.previewImage }}
+                        source={{
+                          uri: c.previewImage?.startsWith("http")
+                            ? c.previewImage
+                            : `${API_BASE_URL}${c.previewImage}`,
+                        }}
                         style={[
                           styles.circularImage,
                           selectedProductDetails?.colors?.length > 6 && {

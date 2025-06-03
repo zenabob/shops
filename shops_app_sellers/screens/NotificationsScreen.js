@@ -9,6 +9,7 @@ import {
   Image,
 } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
+import {API_BASE_URL} from "../config";
 
 import axios from "axios";
 const NotificationsScreen = ({ route, shopId, onUpdateCount }) => {
@@ -27,7 +28,7 @@ const NotificationsScreen = ({ route, shopId, onUpdateCount }) => {
     try {
       setLoading(true);
       const res = await axios.get(
-        `http://172.20.10.4:5000/notifications/${shopId}?onlyUnread=true`
+        `${API_BASE_URL}/notifications/${shopId}?onlyUnread=true`
       );
       setNotifications(res.data);
     } catch (error) {
@@ -41,13 +42,12 @@ const NotificationsScreen = ({ route, shopId, onUpdateCount }) => {
   const markAsRead = async (notificationId) => {
     try {
       await axios.put(
-        `http://172.20.10.4:5000/notifications/${notificationId}/read`
+        `${API_BASE_URL}/notifications/${notificationId}/read`
       );
       setNotifications((prev) =>
   prev.filter((item) => item._id !== notificationId)
 );
 
-// ✅ حدّث العدد
 onUpdateCount(prev => Math.max(0, prev - 1));
       
     } catch (error) {

@@ -13,6 +13,7 @@ const OrderSchema = new mongoose.Schema({
       shopId: { type: mongoose.Schema.Types.ObjectId, ref: "Shops" },
       productId: String,
       title: String,
+      image: String,
       price: Number,
       quantity: Number,
       selectedColor: String,

@@ -8,6 +8,7 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
+import { API_BASE_URL } from "../Backend/config"; 
 
 const AddNewAdmin = () => {
   const [form, setForm] = useState({
@@ -35,7 +36,7 @@ const AddNewAdmin = () => {
     }
 
     try {
-      const response = await fetch(`http://172.20.10.4:5002/admin/create`, {
+      const response = await fetch(`${API_BASE_URL}/admin/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: form.email, password: form.password }),
@@ -101,8 +102,7 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: "center",
     justifyContent: "center",
-    marginTop:150,
-    
+    marginTop: 150,
   },
   title: {
     fontSize: 24,

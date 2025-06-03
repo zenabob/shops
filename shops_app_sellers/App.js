@@ -7,6 +7,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { ActionSheetProvider } from '@expo/react-native-action-sheet';
 import axios from "axios";
 import { useNavigation } from '@react-navigation/native';
+import {API_BASE_URL} from "./config";
 
 import { Text } from 'react-native'; 
 
@@ -39,7 +40,7 @@ function MainDrawer({ userId, shopId }) {
       if (!shopId) return;
       try {
         const res = await axios.get(
-          `http://172.20.10.4:5000/notifications/${shopId}?onlyUnread=true`
+          `${API_BASE_URL}/notifications/${shopId}?onlyUnread=true`
         );
         setNotificationCount(res.data.length);
       } catch (err) {

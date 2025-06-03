@@ -33,6 +33,7 @@ import EditShopInfoModal from "../models/MainScreen/EditShopInfoModal.js"; // Ad
 import AddProduct from "../models/MainScreen/AddProduct";
 import ProductDetails from "../models/MainScreen/productDetails.js";
 import AddColorModal from "../models/MainScreen/AddColorModal";
+import { API_BASE_URL } from "../config";
 
 const DEFAULT_LOGO = require("../assets/img/default_Profile__picture.png");
 const DEFAULT_COVER = require("../assets/img/cover_image.png");
@@ -161,7 +162,7 @@ const ShopProfileScreen = () => {
 
   const fetchShopData = async () => {
     try {
-      const res = await axios.get(`http://172.20.10.4:5000/profile/${userId}`);
+      const res = await axios.get(`${API_BASE_URL}/profile/${userId}`);
       setShopData(res.data);
     } catch (err) {
       console.error("Error fetching shop data:", err);
@@ -170,9 +171,7 @@ const ShopProfileScreen = () => {
 
   const fetchCategories = async () => {
     try {
-      const res = await axios.get(
-        `http://172.20.10.4:5000/profile/${userId}/category`
-      );
+      const res = await axios.get(`${API_BASE_URL}/profile/${userId}/category`);
       setCategories(res.data);
     } catch (err) {
       console.error("Error fetching categories:", err);
@@ -182,7 +181,7 @@ const ShopProfileScreen = () => {
   const fetchCategoriesWithProducts = async () => {
     try {
       const res = await axios.get(
-        `http://172.20.10.4:5000/profile/${userId}/categories-with-products`
+        `${API_BASE_URL}/profile/${userId}/categories-with-products`
       );
       const result = {};
       res.data.forEach((category) => {
@@ -229,7 +228,7 @@ const ShopProfileScreen = () => {
 
     try {
       const res = await axios.post(
-        `http://172.20.10.4:5000/profile/${userId}/upload-color`,
+        `${API_BASE_URL}/profile/${userId}/upload-color`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -446,7 +445,7 @@ const ShopProfileScreen = () => {
 
       // 1. Backend deletion
       await axios.delete(
-        `http://172.20.10.4:5000/profile/${userId}/category/${selectedCategory}/product/${productId}/color/${encodedColor}/image`,
+        `${API_BASE_URL}/profile/${userId}/category/${selectedCategory}/product/${productId}/color/${encodedColor}/image`,
         {
           data: { imageUrl: imageUrlToDelete },
         }
@@ -536,7 +535,7 @@ const ShopProfileScreen = () => {
       );
 
       await axios.put(
-        `http://172.20.10.4:5000/profile/${userId}/category/${selectedCategory}/product/${selectedProductDetails._id}`,
+        `${API_BASE_URL}/profile/${userId}/category/${selectedCategory}/product/${selectedProductDetails._id}`,
         formData,
         {
           headers: {
@@ -636,7 +635,7 @@ const ShopProfileScreen = () => {
             );
 
             await axios.put(
-              `http://172.20.10.4:5000/profile/${userId}/category/${selectedCategory}/product/${selectedProductDetails._id}`,
+              `${API_BASE_URL}/profile/${userId}/category/${selectedCategory}/product/${selectedProductDetails._id}`,
               formData,
               {
                 headers: { "Content-Type": "multipart/form-data" },
@@ -658,7 +657,7 @@ const ShopProfileScreen = () => {
 
     try {
       await axios.put(
-        `http://172.20.10.4:5000/profile/${userId}/category/${oldCategoryName}`,
+        `${API_BASE_URL}/profile/${userId}/category/${oldCategoryName}`,
         {
           newName: trimmed,
         }
@@ -736,7 +735,7 @@ const ShopProfileScreen = () => {
     if (newErrors.name || newErrors.location) return;
 
     try {
-      await axios.put(`http://172.20.10.4:5000/profile/${userId}`, {
+      await axios.put(`${API_BASE_URL}/profile/${userId}`, {
         name: nameTrimmed,
         location: locationTrimmed,
       });
@@ -779,7 +778,7 @@ const ShopProfileScreen = () => {
     formData.append("image", { uri, name: `${type}.jpg`, type: "image/jpeg" });
     try {
       const res = await axios.post(
-        `http://172.20.10.4:5000/profile/${userId}/upload-${type}`,
+        `${API_BASE_URL}/profile/${userId}/upload-${type}`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -793,7 +792,7 @@ const ShopProfileScreen = () => {
   const handleDeleteCategory = async (category) => {
     try {
       const res = await axios.delete(
-        `http://172.20.10.4:5000/profile/${userId}/category/${category}`
+        `${API_BASE_URL}/profile/${userId}/category/${category}`
       );
       setCategories(res.data);
       await fetchCategoriesWithProducts();
@@ -803,93 +802,93 @@ const ShopProfileScreen = () => {
   };
 
   const handleSaveProduct = async () => {
-  if (isSaving) return;
+    if (isSaving) return;
 
-  const newErrors = {
-    title:
-      newProduct.title.trim() === "" ? "Please enter a product name" : "",
-    price: newProduct.price.trim() === "" ? "Please enter a price" : "",
-    image: !newProduct.image ? "Please select an image" : "",
-  };
+    const newErrors = {
+      title:
+        newProduct.title.trim() === "" ? "Please enter a product name" : "",
+      price: newProduct.price.trim() === "" ? "Please enter a price" : "",
+      image: !newProduct.image ? "Please select an image" : "",
+    };
 
-  setErrors(newErrors);
-  const hasErrors = Object.values(newErrors).some((err) => err !== "");
-  if (hasErrors) return;
+    setErrors(newErrors);
+    const hasErrors = Object.values(newErrors).some((err) => err !== "");
+    if (hasErrors) return;
 
-  try {
-    setIsSaving(true);
+    try {
+      setIsSaving(true);
 
-    const formData = new FormData();
-    formData.append("title", newProduct.title);
-    formData.append("price", newProduct.price);
-    formData.append("genderTarget", newProduct.genderTarget || "unisex");
-    formData.append("category", selectedCategory);
+      const formData = new FormData();
+      formData.append("title", newProduct.title);
+      formData.append("price", newProduct.price);
+      formData.append("genderTarget", newProduct.genderTarget || "unisex");
+      formData.append("category", selectedCategory);
 
-    // Append image only if local
-    if (newProduct.image && !newProduct.image.startsWith("http")) {
-      formData.append("image", {
-        uri: newProduct.image,
-        name: "product.jpg",
-        type: "image/jpeg",
+      // Append image only if local
+      if (newProduct.image && !newProduct.image.startsWith("http")) {
+        formData.append("image", {
+          uri: newProduct.image,
+          name: "product.jpg",
+          type: "image/jpeg",
+        });
+      }
+
+      // Add extra structured fields
+      formData.append("images", JSON.stringify(newProduct.images || []));
+      formData.append("colors", JSON.stringify(newProduct.colors || []));
+      formData.append("sizes", JSON.stringify(newProduct.sizes || []));
+      formData.append("offer", JSON.stringify(newProduct.offer || {}));
+
+      let response;
+      if (newProduct.id) {
+        // UPDATE existing
+        response = await axios.put(
+          `${API_BASE_URL}/profile/${userId}/category/${selectedCategory}/product/${newProduct.id}`,
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          }
+        );
+      } else {
+        // CREATE new
+        response = await axios.post(
+          `${API_BASE_URL}/profile/${userId}/category/${selectedCategory}/product`,
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          }
+        );
+      }
+
+      await fetchCategoriesWithProducts();
+      setShowProductModal(false);
+      setNewProduct({
+        title: "",
+        price: "",
+        image: null,
+        id: null,
+        genderTarget: "",
+        images: [],
+        colors: [],
+        sizes: [],
+        offer: {
+          discountPercentage: 0,
+          expiresAt: "", // أو new Date().toISOString()
+        },
       });
+
+      setErrors({ title: "", price: "", image: "" });
+    } catch (err) {
+      console.error("Error saving product:", err);
+    } finally {
+      setIsSaving(false);
     }
-
-    // Add extra structured fields
-    formData.append("images", JSON.stringify(newProduct.images || []));
-    formData.append("colors", JSON.stringify(newProduct.colors || []));
-    formData.append("sizes", JSON.stringify(newProduct.sizes || []));
-    formData.append("offer", JSON.stringify(newProduct.offer || {}));
-
-    let response;
-    if (newProduct.id) {
-      // UPDATE existing
-      response = await axios.put(
-        `http://172.20.10.4:5000/profile/${userId}/category/${selectedCategory}/product/${newProduct.id}`,
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
-    } else {
-      // CREATE new
-      response = await axios.post(
-        `http://172.20.10.4:5000/profile/${userId}/category/${selectedCategory}/product`,
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
-    }
-
-    await fetchCategoriesWithProducts();
-    setShowProductModal(false);
-    setNewProduct({
-  title: "",
-  price: "",
-  image: null,
-  id: null,
-  genderTarget: "",
-  images: [],
-  colors: [],
-  sizes: [],
-  offer: {
-    discountPercentage: 0,
-    expiresAt: "", // أو new Date().toISOString()
-  },
-});
-
-    setErrors({ title: "", price: "", image: "" });
-  } catch (err) {
-    console.error("Error saving product:", err);
-  } finally {
-    setIsSaving(false);
-  }
-};
+  };
 
   const handleDeleteProduct = async (productId, category) => {
     try {
       await axios.delete(
-        `http://172.20.10.4:5000/profile/${userId}/category/${category}/product/${productId}`
+        `${API_BASE_URL}/profile/${userId}/category/${category}/product/${productId}`
       );
       setProductsByCategory((prev) => ({
         ...prev,
@@ -990,7 +989,7 @@ const ShopProfileScreen = () => {
     if (exists) return Alert.alert("This category already exists!");
     try {
       const res = await axios.post(
-        `http://172.20.10.4:5000/profile/${userId}/category`,
+        `${API_BASE_URL}/profile/${userId}/category`,
         {
           category: trimmed,
         }
@@ -1020,14 +1019,20 @@ const ShopProfileScreen = () => {
             <TouchableOpacity onPress={() => pickImage("cover")}>
               <Image
                 source={
-                  shopData.cover ? { uri: shopData.cover } : DEFAULT_COVER
+                  shopData.cover
+                    ? { uri: `${API_BASE_URL}${shopData.cover}` }
+                    : DEFAULT_COVER
                 }
                 style={styles.cover}
               />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => pickImage("logo")}>
               <Image
-                source={shopData.logo ? { uri: shopData.logo } : DEFAULT_LOGO}
+                source={
+                  shopData.logo
+                    ? { uri: `${API_BASE_URL}${shopData.logo}` }
+                    : DEFAULT_LOGO
+                }
                 style={styles.logo}
               />
             </TouchableOpacity>
@@ -1081,33 +1086,32 @@ const ShopProfileScreen = () => {
                 animationType="none"
               >
                 <Pressable
-  style={{
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.4)",
-    flex: 1,
-  }}
-  onPress={closeCategorySelector}
->
-  <Animated.View
-    style={{
-      width: "80%",
-      maxHeight: "70%",
-      backgroundColor: "#fff",
-      padding: 20,
-      borderRadius: 20,
-      transform: [
-        {
-          translateY: modalOpacity.interpolate({
-            inputRange: [0, 1],
-            outputRange: [100, 0],
-          }),
-        },
-      ],
-    }}
-  >
-
+                  style={{
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    backgroundColor: "rgba(0,0,0,0.4)",
+                    flex: 1,
+                  }}
+                  onPress={closeCategorySelector}
+                >
+                  <Animated.View
+                    style={{
+                      width: "80%",
+                      maxHeight: "70%",
+                      backgroundColor: "#fff",
+                      padding: 20,
+                      borderRadius: 20,
+                      transform: [
+                        {
+                          translateY: modalOpacity.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [100, 0],
+                          }),
+                        },
+                      ],
+                    }}
+                  >
                     <Text
                       style={{
                         fontSize: 20,
@@ -1144,7 +1148,7 @@ const ShopProfileScreen = () => {
 
                             try {
                               const res = await axios.post(
-                                `http://172.20.10.4:5000/profile/${userId}/category`,
+                                `${API_BASE_URL}/profile/${userId}/category`,
                                 {
                                   category: item,
                                 }
@@ -1198,15 +1202,11 @@ const ShopProfileScreen = () => {
                   {categories.map((category, index) => (
                     <View key={index} style={styles.categoryRow}>
                       <View style={styles.categoryRowContent}>
-                        
-                          <Text style={styles.categoryText}>{category}</Text>
-                    
+                        <Text style={styles.categoryText}>{category}</Text>
 
                         <View
                           style={{ flexDirection: "row", alignItems: "center" }}
                         >
-                          
-
                           <TouchableOpacity
                             onPress={() => handleAddProductToCategory(category)}
                           >
@@ -1260,9 +1260,14 @@ const ShopProfileScreen = () => {
                               </View>
 
                               <Image
-                                source={{ uri: product.MainImage }}
-                                style={styles.productImage}
-                              />
+  source={{
+    uri: product.MainImage?.startsWith("http")
+      ? product.MainImage
+      : `${API_BASE_URL}${product.MainImage}`,
+  }}
+  style={styles.productImage}
+/>
+
                               <Text
                                 style={styles.productTitle}
                                 numberOfLines={1}

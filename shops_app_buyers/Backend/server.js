@@ -6,6 +6,10 @@ const path = require("path");
 const Order = require("../modals/Order");
 const { v4: uuidv4 } = require("uuid");
 const app = express();
+const { NGROK_URL } = require("./ngrok-url");
+const SELLER_API_BASE_URL = `${NGROK_URL}/shops_app_sellers`;
+const API_BASE_URL = `${NGROK_URL}/shops_app_buyers`;
+const nodemailer = require("nodemailer");
 
 // Middleware
 app.use(express.json());
@@ -113,11 +117,10 @@ const ShopSchema = new mongoose.Schema({
     },
   ],
   status: {
-  type: String,
-  enum: ["approved", "pending"],
-  default: "pending", 
-}
-
+    type: String,
+    enum: ["approved", "pending"],
+    default: "pending",
+  },
 });
 
 // Models
@@ -359,7 +362,6 @@ app.post("/profile/:userId/cart", async (req, res) => {
 
 app.get("/profile/:userId/cart", async (req, res) => {
   try {
-    // ✅ استخدمي populate للحصول على shopId ككائن يحتوي على shopName
     const user = await User.findById(req.params.userId).populate("cart.shopId");
 
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -373,7 +375,7 @@ app.get("/profile/:userId/cart", async (req, res) => {
 
       try {
         const resProduct = await axios.get(
-          `http://172.20.10.4:5000/public/shop/${shopId._id}/product/${productId}`
+          `${SELLER_API_BASE_URL}/public/shop/${shopId._id}/product/${productId}`
         );
 
         const product = resProduct.data?.product;
@@ -468,7 +470,7 @@ app.post("/user/:userId/favorites", async (req, res) => {
     let offer = null;
     try {
       const resProduct = await axios.get(
-        `http://172.20.10.4:5000/public/shop/${shopId}/product/${productId}`
+        `${SELLER_API_BASE_URL}/public/shop/${shopId}/product/${productId}`
       );
       const product = resProduct.data.product;
       if (product?.offer && new Date(product.offer.expiresAt) > new Date()) {
@@ -514,7 +516,7 @@ app.get("/user/:userId/favorites", async (req, res) => {
 
       try {
         const resProduct = await axios.get(
-          `http://172.20.10.4:5000/public/shop/${fav.shopId}/product/${fav.productId}`
+          `${SELLER_API_BASE_URL}/public/shop/${fav.shopId}/product/${fav.productId}`
         );
         const product = resProduct.data.product;
 
@@ -593,9 +595,9 @@ app.get("/personalized-products/:userId", async (req, res) => {
     const { userId } = req.params;
 
     const favorites = await axios.get(
-      `http://172.20.10.4:5001/user/${userId}/favorites`
+      `${API_BASE_URL}/user/${userId}/favorites`
     );
-    const cart = await axios.get(`http://172.20.10.4:5001/user/${userId}/cart`);
+    const cart = await axios.get(`${API_BASE_URL}/user/${userId}/cart`);
 
     const favoriteProductIds = favorites.data.map((item) => item.productId);
     const cartProductIds = cart.data.map((item) => item.productId);
@@ -736,12 +738,15 @@ app.post("/orders/:userId", async (req, res) => {
 
     const user = await User.findById(userId).populate("cart.shopId");
     if (!user || !user.cart.length) {
-      return res.status(400).json({ message: "User not found or cart is empty." });
+      return res
+        .status(400)
+        .json({ message: "User not found or cart is empty." });
     }
 
     const groupedByShop = {};
     for (let item of user.cart) {
-      const shopKey = item.shopId._id?.toString?.() || item.shopId?.toString?.();
+      const shopKey =
+        item.shopId._id?.toString?.() || item.shopId?.toString?.();
       if (!groupedByShop[shopKey]) groupedByShop[shopKey] = [];
       groupedByShop[shopKey].push(item);
     }
@@ -756,11 +761,14 @@ app.post("/orders/:userId", async (req, res) => {
       if (!shop) continue;
 
       for (let item of items) {
-        const product = shop.categories?.flatMap(cat => cat.products)
-          ?.find(prod => prod._id.toString() === item.productId);
+        const product = shop.categories
+          ?.flatMap((cat) => cat.products)
+          ?.find((prod) => prod._id.toString() === item.productId);
 
-        const color = product?.colors.find(c => c.name === item.selectedColor);
-        const size = color?.sizes.find(s => s.size === item.selectedSize);
+        const color = product?.colors.find(
+          (c) => c.name === item.selectedColor
+        );
+        const size = color?.sizes.find((s) => s.size === item.selectedSize);
 
         if (!size || size.stock < item.quantity) {
           failedItems.push({
@@ -769,6 +777,7 @@ app.post("/orders/:userId", async (req, res) => {
             color: item.selectedColor,
             size: item.selectedSize,
             requested: item.quantity,
+            
             available: size ? size.stock : 0,
           });
           continue;
@@ -792,45 +801,53 @@ app.post("/orders/:userId", async (req, res) => {
   userLocation: location,
   totalPrice,
   products: items.map(item => {
-    let finalPrice = item.price;
+  let finalPrice = item.price;
 
-    // ✅ Apply discount if offer is valid
-    if (
-      item.offer &&
-      item.offer.discountPercentage &&
-      new Date(item.offer.expiresAt) > new Date()
-    ) {
-      finalPrice = +(item.price * (1 - item.offer.discountPercentage / 100)).toFixed(2);
-    }
+  if (
+    item.offer &&
+    item.offer.discountPercentage &&
+    new Date(item.offer.expiresAt) > new Date()
+  ) {
+    finalPrice = +(item.price * (1 - item.offer.discountPercentage / 100)).toFixed(2);
+  }
 
-    return {
-      shopId,
-      productId: item.productId,
-      title: item.title,
-      price: finalPrice, // ✅ Store final price after discount
-      quantity: item.quantity,
-      selectedColor: item.selectedColor,
-      selectedSize: item.selectedSize,
-    };
-  }),
+  // ✅ نحصل على المنتج الحقيقي من shop
+  const product = shop.categories
+    ?.flatMap(cat => cat.products)
+    ?.find(prod => prod._id.toString() === item.productId);
+
+  return {
+    shopId,
+    productId: item.productId,
+    title: item.title,
+    image: product?.MainImage, 
+    price: finalPrice,
+    quantity: item.quantity,
+    selectedColor: item.selectedColor,
+    selectedSize: item.selectedSize,
+  };
+}),
+
   status: "New",
   createdAt: new Date(),
 });
-
 
       await order.save();
       createdOrders.push(order);
       globalOrderIndex++;
 
       for (let item of items) {
-        const product = shop.categories?.flatMap(cat => cat.products)
-          ?.find(prod => prod._id.toString() === item.productId);
+        const product = shop.categories
+          ?.flatMap((cat) => cat.products)
+          ?.find((prod) => prod._id.toString() === item.productId);
 
-        const color = product?.colors.find(c => c.name === item.selectedColor);
-        const size = color?.sizes.find(s => s.size === item.selectedSize);
+        const color = product?.colors.find(
+          (c) => c.name === item.selectedColor
+        );
+        const size = color?.sizes.find((s) => s.size === item.selectedSize);
 
         if (size?.stock === 0) {
-          await axios.post("http://172.20.10.4:5000/notify-soldout", {
+          await axios.post(`${SELLER_API_BASE_URL}/notify-soldout`, {
             shopId,
             productId: product._id.toString(),
             color: item.selectedColor,
@@ -850,14 +867,105 @@ app.post("/orders/:userId", async (req, res) => {
         createdOrders,
       });
     }
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: "cartchic14@gmail.com",
+        pass: "lfod msmk jcex atoe", // App Password
+      },
+    });
 
-    res.status(200).json({ message: "Orders created successfully", createdOrders });
+    const totalProductPrice = createdOrders.reduce((sum, order) => {
+      return (
+        sum +
+        order.products.reduce((s, item) => s + item.price * item.quantity, 0)
+      );
+    }, 0);
+
+    const totalPriceWithShipping = totalProductPrice + shippingCost;
+
+    const allItems = createdOrders.flatMap((order) => order.products);
+function getFullImageUrl(imagePath) {
+  if (!imagePath) return "";
+  if (imagePath.startsWith("http")) return imagePath;
+  if (!imagePath.startsWith("/")) imagePath = "/" + imagePath;
+  return `${NGROK_URL}${imagePath}`;
+}
+console.log("🧾 allItems images:", allItems.map(p => p.image));
+console.log("🔗 NGROK_URL used in email:", NGROK_URL);
+
+    const orderHtml = `
+  <div style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333;">
+    <h2 style="color: #4CAF50;">Thank you for your order | ChicCart</h2>
+    <p>Hello <strong>${user.fullName}</strong>,</p>
+    <p>Your order has been successfully placed.</p>
+
+    <hr style="margin: 20px 0;" />
+    <p><strong>Shipping Address:</strong><br>${user.location}</p>
+    <p><strong>Phone:</strong> 0${user.PhoneNumber}</p>
+
+    <h3>Order Summary</h3>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th style="border-bottom:1px solid #ccc;text-align:left;">Image</th>
+          <th style="border-bottom:1px solid #ccc;text-align:left;">Product</th>
+          <th style="border-bottom:1px solid #ccc;text-align:left;">Qty</th>
+          <th style="border-bottom:1px solid #ccc;text-align:left;">Color</th>
+          <th style="border-bottom:1px solid #ccc;text-align:left;">Size</th>
+          <th style="border-bottom:1px solid #ccc;text-align:left;">Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${allItems
+          .map(
+            (item) => `
+          <tr>
+            <td><img src="${SELLER_API_BASE_URL}${item.image}" alt="${
+              item.title
+            }" width="60" style="border-radius:4px;" /></td>
+            <td>${item.title}</td>
+            <td>${item.quantity}</td>
+            <td>${item.selectedColor}</td>
+            <td>${item.selectedSize}</td>
+            <td>₪${item.price}</td>
+          </tr>
+        `
+          )
+          .join("")}
+      </tbody>
+    </table>
+
+    <p style="margin-top: 20px;"><strong>Shipping:</strong> ₪${shippingCost}</p>
+    <p><strong>Total:</strong> ₪${totalPriceWithShipping}</p>
+
+    <hr style="margin: 20px 0;" />
+    <p style="margin-top: 10px;">Thanks for shopping with us!<br><strong>ChicCart Team</strong></p>
+  </div>
+`;
+
+    const mailOptions = {
+      from: "cartchic14@gmail.com",
+      to: user.email,
+      subject: "Your ChicCart Order Confirmation",
+      html: orderHtml,
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log("📧 Email sent to:", user.email);
+    } catch (emailErr) {
+      console.error("❌ Failed to send email:", emailErr);
+    }
+
+    res
+      .status(200)
+      .json({ message: "Orders created successfully", createdOrders });
   } catch (error) {
     console.error("❌ Order creation error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
-
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5001;

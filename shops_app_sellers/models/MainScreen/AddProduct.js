@@ -41,14 +41,19 @@ const AddProduct = ({
   
               {newProduct.image && (
                 <Image
-                  source={{ uri: newProduct.image }}
-                  style={{
-                    width: 100,
-                    height: 100,
-                    marginVertical: 10,
-                    borderRadius: 8,
-                  }}
-                />
+  source={{
+    uri: newProduct.image?.startsWith("http")
+      ? newProduct.image
+      : `${API_BASE_URL}${newProduct.image}`,
+  }}
+  style={{
+    width: 100,
+    height: 100,
+    marginVertical: 10,
+    borderRadius: 8,
+  }}
+/>
+
               )}
   
               <Text style={styles.label}>The name of product</Text>

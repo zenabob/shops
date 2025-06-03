@@ -12,6 +12,8 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
+import { SELLER_API_BASE_URL } from "../seller-api";
+
 import { TouchableWithoutFeedback, Keyboard } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -19,6 +21,7 @@ import ProductDetails from "../modals/ProductDetails";
 import { Pressable } from "react-native";
 import SplitCircleTwoImages from "../components/SplitCircleTwoImages";
 import SplitCircleThreeImages from "../components/SplitCircleThreeImages";
+import {API_BASE_URL} from "../config";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -47,7 +50,7 @@ const MainScreen = () => {
       const userId = await AsyncStorage.getItem("userId");
       setUserId(userId);
 
-      const res = await fetch("http://172.20.10.4:5000/public/all-products");
+      const res = await fetch(`${SELLER_API_BASE_URL}/public/all-products`);
       const data = await res.json();
       setProducts(data.length > 0 ? data : []);
     } catch (error) {
@@ -57,7 +60,7 @@ const MainScreen = () => {
 
   const fetchCovers = async () => {
     try {
-      const res = await fetch("http://172.20.10.4:5000/random-covers");
+      const res = await fetch(`${SELLER_API_BASE_URL}/random-covers`);
       const data = await res.json();
       setCovers(data);
     } catch (error) {
@@ -76,7 +79,7 @@ const MainScreen = () => {
 
     try {
       const res = await fetch(
-        `http://172.20.10.4:5000/public/search-suggestions?q=${text}`
+        `${SELLER_API_BASE_URL}/public/search-suggestions?q=${text}`
       );
       const data = await res.json();
 
@@ -162,7 +165,7 @@ const MainScreen = () => {
   const handleProductPress = async (item) => {
     try {
       const res = await fetch(
-        `http://172.20.10.4:5000/public/shop/${item.shopId}/product/${item._id}`
+        `${SELLER_API_BASE_URL}/public/shop/${item.shopId}/product/${item._id}`
       );
       const data = await res.json();
       const product = data.product;
@@ -207,13 +210,13 @@ const MainScreen = () => {
     }
 
     const response = await fetch(
-      `http://172.20.10.4:5001/profile/${userId}/cart`,
+      `${API_BASE_URL}/profile/${userId}/cart`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...cartItem,
-          offer: offerData, // ✅ include valid offer if it exists
+          offer: offerData, 
         }),
       }
     );
@@ -470,9 +473,14 @@ const MainScreen = () => {
                     activeOpacity={0.8}
                   >
                     <Image
-                      source={{ uri: shop.cover }}
-                      style={styles.sliderImage}
-                    />
+  source={{
+    uri: shop.cover?.startsWith("http")
+      ? shop.cover
+      : `${SELLER_API_BASE_URL}${shop.cover}`,
+  }}
+  style={styles.sliderImage}
+/>
+
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -578,7 +586,20 @@ const MainScreen = () => {
                           image2={item.img2}
                         />
                       ) : (
-                        <Image source={item.img} style={styles.categoryImage} />
+  <Image
+  source={
+    typeof item.img === "string"
+      ? {
+          uri: item.img.startsWith("http")
+            ? item.img
+            : `${SELLER_API_BASE_URL}${item.img}`,
+        }
+      : item.img 
+  }
+  style={styles.categoryImage}
+/>
+
+
                       )}
                     </TouchableOpacity>
                     <Text
@@ -610,10 +631,18 @@ const MainScreen = () => {
               style={styles.productCard}
             >
               <Image
-                source={{ uri: item.MainImage }}
-                style={styles.productImage}
-                resizeMode="cover"
-              />
+  source={{
+    uri:
+      typeof item.MainImage === "string"
+        ? item.MainImage.startsWith("http")
+          ? item.MainImage
+          : `${SELLER_API_BASE_URL}${item.MainImage}`
+        : "https://via.placeholder.com/150", 
+  }}
+  style={styles.productImage}
+  resizeMode="cover"
+/>
+
               <Text numberOfLines={1} style={styles.productTitle}>
                 {item.title}
               </Text>

@@ -1,23 +1,25 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image } from 'react-native';
 import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
+import { API_BASE_URL } from "../Backend/config";
 
 const ApprovedShopsScreen = () => {
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
-const removeApproval = async (shopId) => {
-  try {
-    await axios.put(`http://172.20.10.4:5002/admin/remove-approval/${shopId}`);
-    setShops((prev) => prev.filter((shop) => shop._id !== shopId));
-  } catch (error) {
-    console.error("Failed to remove approval", error);
-  }
-};
+
+  const removeApproval = async (shopId) => {
+    try {
+      await axios.put(`${API_BASE_URL}/admin/remove-approval/${shopId}`);
+      setShops((prev) => prev.filter((shop) => shop._id !== shopId));
+    } catch (error) {
+      console.error("Failed to remove approval", error);
+    }
+  };
 
   const fetchShops = async () => {
     try {
-      const res = await axios.get("http://172.20.10.4:5002/admin/shops");
+      const res = await axios.get(`${API_BASE_URL}/admin/shops`);
       const approved = res.data.filter(shop => shop.status === "approved");
       setShops(approved);
     } catch (error) {
@@ -33,28 +35,36 @@ const removeApproval = async (shopId) => {
     }, [])
   );
 
-  const renderShop = ({ item }) => (
+ const renderShop = ({ item }) => {
+  const logoUri = item.logo
+    ? `${API_BASE_URL}${item.logo.startsWith("/") ? "" : "/"}${item.logo}`
+    : null;
+
+  return (
     <View style={styles.card}>
       <Image
-        source={item.logo ? { uri: item.logo } : require("../assets/img/default_Profile__picture.png")}
-        style={styles.logo}
-      />
+  source={
+    item.logo
+      ? { uri: `${API_BASE_URL}${item.logo.startsWith("/") ? "" : "/"}${item.logo}` }
+      : require("../assets/img/default_Profile__picture.png")
+  }
+  style={styles.logo}
+/>
+
       <View style={styles.details}>
         <Text style={styles.shopName}>{item.shopName}</Text>
         <Text>Owner: {item.fullName}</Text>
         <Text>Email: {item.email}</Text>
         <Text>Phone: {item.phoneNumber}</Text>
         <Text>Location: {item.location}</Text>
-        <Text
-  style={styles.removeButton}
-  onPress={() => removeApproval(item._id)}
->
-  🔙 Remove
-</Text>
-
+        <Text style={styles.removeButton} onPress={() => removeApproval(item._id)}>
+          🔙 Remove
+        </Text>
       </View>
     </View>
   );
+};
+
 
   return (
     <FlatList
@@ -97,11 +107,10 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   removeButton: {
-  color: "red",
-  fontWeight: "bold",
-  marginTop: 5,
-},
-
+    color: "red",
+    fontWeight: "bold",
+    marginTop: 5,
+  },
 });
 
 export default ApprovedShopsScreen;

@@ -15,6 +15,8 @@ import {
 } from "react-native";
 import axios from "axios";
 import { Alert } from "react-native";
+import {API_BASE_URL} from "../../config";
+
 const EditColorModal = ({
   visible,
   colorForm,
@@ -249,7 +251,7 @@ const EditColorModal = ({
                       );
 
                       await axios.put(
-                        `http://172.20.10.4:5000/profile/${userId}/category/${selectedCategory}/product/${selectedProductDetails._id}`,
+                        `${API_BASE_URL}/profile/${userId}/category/${selectedCategory}/product/${selectedProductDetails._id}`,
                         formData,
                         {
                           headers: {

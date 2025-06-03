@@ -12,6 +12,8 @@ import {
 } from "react-native";
 import axios from "axios";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { API_BASE_URL } from "../Backend/config"; 
+
 const Order = require("../models/Order");
 
 const OrdersScreen = () => {
@@ -34,7 +36,7 @@ const OrdersScreen = () => {
 const markAsDelivered = async (orderId) => {
   try {
     const response = await axios.put(
-      `http://172.20.10.4:5002/admin/orders/${orderId}/deliver`
+      `${API_BASE_URL}/admin/orders/${orderId}/deliver`
     );
     const updatedOrder = response.data.order;
 
@@ -68,7 +70,7 @@ const markAsDelivered = async (orderId) => {
     if (filters.orderDate) {
       params.date = filters.orderDate.toISOString().split("T")[0];
     }
-    const res = await axios.get("http://172.20.10.4:5002/admin/grouped-orders", { params });
+    const res = await axios.get(`${API_BASE_URL}/admin/grouped-orders`, { params });
     setGroupedOrders(res.data.grouped);
     setAllOrders(res.data.all);
     setLoading(false);
@@ -102,7 +104,7 @@ const handleShopNameChange = (text) => {
 const undoDelivery = async (orderId) => {
   try {
     const response = await axios.put(
-      `http://172.20.10.4:5002/admin/orders/${orderId}/undo-deliver`
+      `${API_BASE_URL}/admin/orders/${orderId}/undo-deliver`
     );
     const updatedOrder = response.data.order;
 

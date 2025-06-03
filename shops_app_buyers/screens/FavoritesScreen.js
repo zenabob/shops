@@ -12,6 +12,8 @@ import {
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 import ProductDetails from "../modals/ProductDetails";
+import {API_BASE_URL} from "../config";
+import { SELLER_API_BASE_URL } from "../seller-api";
 
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 40) / 2;
@@ -37,7 +39,7 @@ const FavoritesScreen = ({ route }) => {
 
   const fetchFavorites = async () => {
     try {
-      const res = await axios.get(`http://172.20.10.4:5001/user/${userId}/favorites`);
+      const res = await axios.get(`${API_BASE_URL}/user/${userId}/favorites`);
       setFavorites(res.data);
     } catch (err) {
       console.error("❌ Failed to fetch favorites:", err.response?.data || err.message);
@@ -46,7 +48,7 @@ const FavoritesScreen = ({ route }) => {
 
   const handleAddToCart = async (cartItem) => {
     try {
-      const response = await fetch(`http://172.20.10.4:5001/profile/${userId}/cart`, {
+      const response = await fetch(`${API_BASE_URL}/profile/${userId}/cart`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(cartItem),
@@ -83,7 +85,7 @@ const FavoritesScreen = ({ route }) => {
       }
 
       const res = await axios.get(
-        `http://172.20.10.4:5000/public/shop/${resolvedShopId}/product/${item.productId}`
+        `${SELLER_API_BASE_URL}/public/shop/${resolvedShopId}/product/${item.productId}`
       );
 
       const fullProduct = res.data.product;
@@ -116,7 +118,14 @@ const FavoritesScreen = ({ route }) => {
         key={`${item.productId}_${index}`}
         onPress={() => openProductDetails(item)}
       >
-        <Image source={{ uri: item.image }} style={styles.image} />
+<Image
+  source={{
+    uri: item.image?.startsWith("http")
+      ? item.image
+      : `${SELLER_API_BASE_URL}${item.image.startsWith("/") ? "" : "/"}${item.image}`,
+  }}
+  style={styles.image}
+/>
         <Text style={styles.title} numberOfLines={2}>
           {item.title}
         </Text>

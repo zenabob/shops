@@ -11,6 +11,7 @@ import {
 import axios from "axios";
 import { Modal, TextInput, Button } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import {API_BASE_URL} from "../config";
 
 const ShopOrdersScreen = ({ route, navigation }) => {
   const { userId, shopId } = route.params || {};
@@ -72,7 +73,7 @@ const ShopOrdersScreen = ({ route, navigation }) => {
       }
 
       const res = await axios.get(
-        `http://172.20.10.4:5000/shop/${shopId}/orders`,
+        `${API_BASE_URL}/shop/${shopId}/orders`,
         {
           params,
         }
@@ -97,7 +98,7 @@ const ShopOrdersScreen = ({ route, navigation }) => {
 
  const updateOrderStatus = async (orderId, newStatus) => {
   try {
-    const response = await axios.put(`http://172.20.10.4:5000/orders/${orderId}/status`, {
+    const response = await axios.put(`${API_BASE_URL}/orders/${orderId}/status`, {
       status: newStatus,
     });
 

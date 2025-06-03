@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import axios from "axios";
 import { Alert } from "react-native";
+import {API_BASE_URL} from "../../config";
 const AddColorModal = ({
   visible,
   newColor,
@@ -88,15 +89,20 @@ const AddColorModal = ({
 
             {newColor.previewImage && (
               <Image
-                source={{ uri: newColor.previewImage }}
-                style={{
-                  width: 60,
-                  aspectRatio: 3 / 4,
-                  marginVertical: 8,
-                  borderRadius: 4,
-                  resizeMode: "contain",
-                }}
-              />
+  source={{
+    uri: newColor.previewImage?.startsWith("http")
+      ? newColor.previewImage
+      : `${API_BASE_URL}${newColor.previewImage}`,
+  }}
+  style={{
+    width: 60,
+    aspectRatio: 3 / 4,
+    marginVertical: 8,
+    borderRadius: 4,
+    resizeMode: "contain",
+  }}
+/>
+
             )}
             {colorErrors.previewImage !== "" && (
               <Text style={{ color: "red", fontSize: 12 }}>
@@ -136,16 +142,21 @@ const AddColorModal = ({
                     }}
                   >
                     <Image
-                      source={{ uri: img }}
-                      style={{
-                        width: 70,
-                        borderRadius: 6,
-                        borderWidth: 1,
-                        borderColor: "#ccc",
-                        aspectRatio: 3 / 4,
-                        resizeMode: "contain",
-                      }}
-                    />
+  source={{
+    uri: img?.startsWith("http")
+      ? img
+      : `${API_BASE_URL}${img}`,
+  }}
+  style={{
+    width: 70,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    aspectRatio: 3 / 4,
+    resizeMode: "contain",
+  }}
+/>
+
                     <TouchableOpacity
                       onPress={() => handleDeleteColorImage(img)}
                       style={{
@@ -277,7 +288,7 @@ const AddColorModal = ({
                   );
 
                   await axios.put(
-                    `http://172.20.10.4:5000/profile/${userId}/category/${selectedCategory}/product/${selectedProductDetails._id}`,
+                    `${API_BASE_URL}/profile/${userId}/category/${selectedCategory}/product/${selectedProductDetails._id}`,
                     formData,
                     {
                       headers: {

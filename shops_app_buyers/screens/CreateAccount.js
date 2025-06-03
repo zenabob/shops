@@ -15,6 +15,7 @@ import {
   Keyboard,
   Modal, 
 } from "react-native";
+import {API_BASE_URL} from "../config";
 
 import { useNavigation } from "@react-navigation/native";
 import { Picker } from "@react-native-picker/picker";
@@ -108,7 +109,7 @@ const RegisterScreen = () => {
 
     setLoading(true);
     try {
-      const response = await fetch("http://172.20.10.4:5001/UserAccount", {
+      const response = await fetch(`${API_BASE_URL}/UserAccount`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

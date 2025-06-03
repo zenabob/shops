@@ -9,6 +9,7 @@ import {
   Alert,
 } from "react-native";
 import ProductDetails from "../modals/ProductDetails";
+import {API_BASE_URL} from "../config";
 
 const ResultOfSearch = ({ route, navigation }) => {
   const { shopId, categoryName, userId, results } = route.params;
@@ -37,9 +38,9 @@ const ResultOfSearch = ({ route, navigation }) => {
       let url = "";
 
       if (shopId) {
-        url = `http://172.20.10.4:5000/public/search-category-products?q=${categoryName}`;
+        url = `${API_BASE_URL}/public/search-category-products?q=${categoryName}`;
       } else {
-        url = `http://172.20.10.4:5000/public/all-products`;
+        url = `${API_BASE_URL}/public/all-products`;
       }
 
       const res = await fetch(url);
@@ -156,7 +157,7 @@ const ResultOfSearch = ({ route, navigation }) => {
       }
 
       const response = await fetch(
-        `http://172.20.10.4:5001/profile/${userId}/cart`,
+        `${API_BASE_URL}/profile/${userId}/cart`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -179,7 +180,7 @@ const ResultOfSearch = ({ route, navigation }) => {
   const handleProductPress = async (item) => {
     try {
       const res = await fetch(
-        `http://172.20.10.4:5000/public/shop/${item.shopId}/product/${item._id}`
+        `${API_BASE_URL}/public/shop/${item.shopId}/product/${item._id}`
       );
       const data = await res.json();
       const product = data.product;

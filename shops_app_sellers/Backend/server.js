@@ -1,3 +1,4 @@
+
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
@@ -8,6 +9,7 @@ const fs = require("fs");
 const axios = require("axios");
 const Order = require("../models/Order");
 const Notification = require("../models/Notification");
+
 
 const app = express();
 app.use(cors());
@@ -302,7 +304,7 @@ app.post(
       const user = await User.findById(req.params.userId);
       if (!user) return res.status(404).json({ message: "User not found" });
 
-      user.logo = `http://172.20.10.4:5000/uploads/${req.file.filename}`;
+      user.logo = `/uploads/${req.file.filename}`;
       await user.save();
       res.json({ url: user.logo });
     } catch (err) {
@@ -319,7 +321,7 @@ app.post("/profile/:userId/upload-cover",
       const user = await User.findById(req.params.userId);
       if (!user) return res.status(404).json({ message: "User not found" });
 
-      user.cover = `http://172.20.10.4:5000/uploads/${req.file.filename}`;
+      user.cover = `/uploads/${req.file.filename}`;
       await user.save();
       res.json({ url: user.cover });
     } catch (err) {
@@ -431,7 +433,7 @@ app.post(
         return res.status(404).json({ message: "Category not found" });
 
       const MainImage = req.file
-        ? `http://172.20.10.4:5000/uploads/${req.file.filename}`
+        ? `/uploads/${req.file.filename}`
         : "";
 
       const parsedImages = images ? JSON.parse(images) : [];
@@ -518,7 +520,7 @@ app.put(
         return res.status(404).json({ message: "Product not found" });
 
       if (req.file) {
-        product.MainImage = `http://172.20.10.4:5000/uploads/${req.file.filename}`;
+        product.MainImage = `/uploads/${req.file.filename}`;
       }
 
       if (updatedFields.title) product.title = updatedFields.title;
@@ -581,7 +583,7 @@ app.post(
   "/profile/:userId/upload-color",
   upload.single("image"),
   (req, res) => {
-    const imageUrl = `http://172.20.10.4:5000/uploads/${req.file.filename}`;
+    const imageUrl = `/uploads/${req.file.filename}`;
     res.json({ url: imageUrl });
   }
 );
@@ -1210,9 +1212,8 @@ app.get("/notifications/:shopId", async (req, res) => {
       filter.isRead = false;
     }
 
-    // ✅ هذه الإضافة هي السر: populate
     const notifications = await Notification.find(filter)
-      .populate("productId", "title") // فقط نحتاج العنوان
+      .populate("productId", "title") 
       .sort({ createdAt: -1 });
 
     res.status(200).json(notifications);
@@ -1242,13 +1243,37 @@ app.put("/notifications/:notificationId/read", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+app.put('/orders/:orderId/status', async (req, res) => {
+  const { orderId } = req.params;
+  const { status } = req.body;
+
+  try {
+    const updateFields = { status };
+
+    if (status === "Delivered to Admin") {
+      updateFields.deliveredToAdminAt = new Date();
+    }
+
+    const updatedOrder = await Order.findOneAndUpdate(
+      { orderId },
+      { $set: updateFields },
+      { new: true }
+    );
+
+    res.json({ order: updatedOrder });
+  } catch (error) {
+    console.error("Error updating order status:", error);
+    res.status(500).json({ error: "Failed to update status" });
+  }
+});
 
 
 
 // ======================
 // Start Server
 // ======================
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5002;
 app.listen(PORT, "0.0.0.0", () =>
-  console.log(` Server running at: http://172.20.10.4:${PORT}`)
+  console.log(`✅ Server running on port ${PORT} (ready for ngrok)`)
 );
+

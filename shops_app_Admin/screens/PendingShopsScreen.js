@@ -10,12 +10,13 @@ import {
 import axios from "axios";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
+import { API_BASE_URL } from "../Backend/config"; 
 
 const PendingShopsScreen = () => {
   const [pendingShops, setPendingShops] = useState([]);
 const rejectShop = async (shopId) => {
   try {
-    await axios.delete(`http://172.20.10.4:5002/admin/delete-shop/${shopId}`);
+    await axios.delete(`${API_BASE_URL}/admin/delete-shop/${shopId}`);
     setPendingShops((prev) => prev.filter((shop) => shop._id !== shopId));
   } catch (error) {
     console.error("Error rejecting shop", error);
@@ -24,7 +25,7 @@ const rejectShop = async (shopId) => {
 
   const fetchPendingShops = async () => {
     try {
-      const res = await axios.get("http://172.20.10.4:5002/admin/pending-shops");
+      const res = await axios.get(`${API_BASE_URL}/admin/pending-shops`);
       setPendingShops(res.data);
     } catch (error) {
       console.error("Error fetching pending shops", error);
@@ -40,7 +41,7 @@ const rejectShop = async (shopId) => {
 
   const approveShop = async (shopId) => {
     try {
-      await axios.put(`http://172.20.10.4:5002/admin/approve-shop/${shopId}`);
+      await axios.put(`${API_BASE_URL}/admin/approve-shop/${shopId}`);
       setPendingShops((prev) => prev.filter((shop) => shop._id !== shopId));
     } catch (error) {
       console.error("Error approving shop", error);

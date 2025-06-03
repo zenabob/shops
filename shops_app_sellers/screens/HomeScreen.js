@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {API_BASE_URL} from "../config";
 
 const HomeScreen = () => {
   const navigation = useNavigation();
@@ -50,7 +51,7 @@ useEffect(() => {
 
     setLoading(true);
     try {
-      const response = await fetch("http://172.20.10.4:5000/loginSeller", {
+      const response = await fetch(`${API_BASE_URL}/loginSeller`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
