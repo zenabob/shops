@@ -8,7 +8,7 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
-import { API_BASE_URL } from "../Backend/config"; 
+import { API_BASE_URL } from "../config"; 
 
 const AddNewAdmin = () => {
   const [form, setForm] = useState({

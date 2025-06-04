@@ -960,10 +960,37 @@ console.log("🔗 NGROK_URL used in email:", NGROK_URL);
 
     res
       .status(200)
-      .json({ message: "Orders created successfully", createdOrders });
+      .json({ message: "Thanks for your order! Please prepare the payment. You’ll pay when the order arrives.", createdOrders });
   } catch (error) {
     console.error("❌ Order creation error:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+});
+app.delete("/admin/delete-shop-data/:shopId", async (req, res) => {
+  const { shopId } = req.params;
+
+  try {
+    const users = await User.find({
+      $or: [
+        { "cart.shopId": shopId },
+        { "favorites.shopId": shopId },
+      ],
+    });
+
+    for (let user of users) {
+      // حذف من السلة
+      user.cart = user.cart.filter((item) => item.shopId.toString() !== shopId);
+
+      // حذف من المفضلات
+      user.favorites = user.favorites.filter((item) => item.shopId.toString() !== shopId);
+
+      await user.save();
+    }
+
+    res.status(200).json({ message: "Client data related to shop deleted" });
+  } catch (error) {
+    console.error("❌ Error deleting client-side shop data:", error);
+    res.status(500).json({ error: "Failed to clean client data" });
   }
 });
 

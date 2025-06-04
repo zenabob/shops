@@ -31,6 +31,7 @@ const ProductDetails = ({
 }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [tick, setTick] = useState(0);
+  const [localSelectedSize, setLocalSelectedSize] = useState(null);
 
   const hasValidOffer =
     selectedProductDetails?.offer &&
@@ -213,7 +214,7 @@ const ProductDetails = ({
                         c.images?.[0] ||
                         selectedProductDetails.MainImage
                     );
-                    setSelectedSize(null);
+                    setLocalSelectedSize(null);
                   }}
                 >
                   <Image
@@ -256,9 +257,9 @@ const ProductDetails = ({
                     style={[
                       styles.sizeBox,
                       s.stock === 0 && { backgroundColor: "#ccc" },
-                      selectedSize === s.size && styles.selectedSizeBox,
+                      localSelectedSize === s.size && styles.selectedSizeBox,
                     ]}
-                    onPress={() => setSelectedSize(s.size)}
+                    onPress={() => setLocalSelectedSize(s.size)}
                   >
                     <Text
                       style={[
@@ -267,7 +268,7 @@ const ProductDetails = ({
                           textDecorationLine: "line-through",
                           color: "#777",
                         },
-                        selectedSize === s.size && styles.selectedSizeText,
+                        localSelectedSize === s.size && styles.selectedSizeText,
                       ]}
                     >
                       {s.size}
@@ -286,7 +287,7 @@ const ProductDetails = ({
                   if (
                     !selectedProductDetails ||
                     !selectedColorName ||
-                    !selectedSize
+                    !localSelectedSize
                   ) {
                     alert("Please select product, color, and size.");
                     return;
@@ -297,7 +298,7 @@ const ProductDetails = ({
                   );
 
                   const selectedSizeObject = selectedColor?.sizes?.find(
-                    (s) => s.size === selectedSize
+                    (s) => s.size === localSelectedSize
                   );
                   if (!selectedSizeObject || selectedSizeObject.stock === 0) {
                     alert("This size is out of stock.");
@@ -310,7 +311,7 @@ const ProductDetails = ({
                     image: selectedMainImage,
                     price: selectedProductDetails.price,
                     selectedColor: selectedColorName,
-                    selectedSize: selectedSize,
+                    selectedSize: localSelectedSize,
                     quantity: 1,
                     shopId: typeof shopId === "object" ? shopId._id : shopId,
                     offer:

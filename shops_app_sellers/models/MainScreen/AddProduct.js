@@ -11,6 +11,8 @@ import {
   Image,
   StyleSheet,
 } from "react-native";
+import { API_BASE_URL } from "../../config";
+
 const AddProduct = ({
     visible,
     selectedCategory,

@@ -18,6 +18,8 @@ import ForgetPassword from './screens/ForgetPassword';
 import Offer from './screens/Offer'
 import ShopOrdersScreen from './screens/ShopOrders';
 import NotificationsScreen from './screens/NotificationsScreen';
+import DashboardScreen from './screens/DashboardScreen';
+
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 
@@ -83,6 +85,12 @@ function MainDrawer({ userId, shopId }) {
       onUpdateCount={setNotificationCount} 
     />
   )}
+</Drawer.Screen>
+<Drawer.Screen
+  name="Dashboard"
+  options={{ drawerLabel: "📊 Dashboard" }}
+>
+  {props => <DashboardScreen {...props} shopId={shopId} />}
 </Drawer.Screen>
 
       <Drawer.Screen

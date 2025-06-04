@@ -11,7 +11,6 @@
     "test": "jest --watchAll",
     "lint": "expo lint",
     "start-ngrok": "node Backend/start-ngrok.js"
-
   },
   "jest": {
     "preset": "jest-expo"
@@ -23,6 +22,7 @@
     "@react-native-community/datetimepicker": "^8.3.0",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/drawer": "^7.3.9",
+    "@react-navigation/material-top-tabs": "^7.2.14",
     "@react-navigation/native": "^7.1.6",
     "@react-navigation/native-stack": "^7.3.10",
     "@react-navigation/stack": "^7.1.2",
@@ -55,12 +55,16 @@
     "react-native-bottom-sheet": "^1.0.3",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-keyboard-aware-scroll-view": "^0.9.5",
+    "react-native-pager-view": "^6.8.1",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.10.0",
+    "react-native-svg": "15.11.2",
+    "react-native-tab-view": "^4.1.1",
     "react-native-vector-icons": "^10.2.0",
     "react-native-web": "~0.20.0",
-    "react-native-webview": "13.12.5"
+    "react-native-webview": "13.12.5",
+    "victory-native": "^35.3.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

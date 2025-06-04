@@ -1,4 +1,5 @@
 
+// Auto-generated ngrok config for shops_app_sellers
 module.exports = {
-  NGROK_URL: "https://6868856bfd71.ngrok.app",
+  NGROK_URL: "https://00435bc6824e.ngrok.app",
 };

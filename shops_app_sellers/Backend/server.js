@@ -1267,7 +1267,150 @@ app.put('/orders/:orderId/status', async (req, res) => {
   }
 });
 
+app.get("/statistics/items-sold", async (req, res) => {
+  try {
+    const { shopId, range = "month" } = req.query;
+    const matchStage = shopId ? { shopId: new mongoose.Types.ObjectId(shopId) } : {};
+    const groupByFormat = range === "day" ? "%Y-%m-%d" : "%Y-%m";
 
+    const result = await Order.aggregate([
+      { $match: matchStage },
+      { $unwind: "$products" },
+      {
+        $group: {
+          _id: { date: { $dateToString: { format: groupByFormat, date: "$createdAt" } } },
+          totalQuantity: { $sum: "$products.quantity" },
+        },
+      },
+      { $sort: { "_id.date": 1 } },
+    ]);
+
+    res.json(result);
+  } catch (err) {
+    console.error("Error getting items sold stats:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// 💰 Turnover (revenue) by month/day
+app.get("/statistics/turnover", async (req, res) => {
+  try {
+    const { shopId, range = "month" } = req.query;
+    const matchStage = shopId ? { shopId: new mongoose.Types.ObjectId(shopId) } : {};
+    const groupByFormat = range === "day" ? "%Y-%m-%d" : "%Y-%m";
+
+    const result = await Order.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: { date: { $dateToString: { format: groupByFormat, date: "$createdAt" } } },
+          totalRevenue: { $sum: "$totalPrice" },
+        },
+      },
+      { $sort: { "_id.date": 1 } },
+    ]);
+
+    res.json(result);
+  } catch (err) {
+    console.error("Error getting turnover stats:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// 🗺️ Items sold by region (pie)
+app.get("/statistics/sales-by-region", async (req, res) => {
+  try {
+    const { shopId } = req.query;
+    const matchStage = shopId ? { shopId: new mongoose.Types.ObjectId(shopId) } : {};
+
+    const result = await Order.aggregate([
+      { $match: matchStage },
+      { $unwind: "$products" },
+      {
+        $group: {
+          _id: "$userLocation",
+          totalQuantity: { $sum: "$products.quantity" },
+        },
+      },
+      { $sort: { totalQuantity: -1 } },
+    ]);
+
+    res.json(result);
+  } catch (err) {
+    console.error("Error getting sales by region:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// 📍 Purchases by region (pie - count of orders)
+app.get("/statistics/purchases-by-region", async (req, res) => {
+  try {
+    const { shopId } = req.query;
+    const matchStage = shopId ? { shopId: new mongoose.Types.ObjectId(shopId) } : {};
+
+    const result = await Order.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: "$userLocation",
+          orderCount: { $sum: 1 },
+        },
+      },
+      { $sort: { orderCount: -1 } },
+    ]);
+
+    res.json(result);
+  } catch (err) {
+    console.error("Error getting purchases by region:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// 💼 Total turnover by shop (admin-wide)
+app.get("/statistics/total-turnover-by-shop", async (req, res) => {
+  try {
+    const result = await Order.aggregate([
+      {
+        $group: {
+          _id: "$shopId",
+          totalRevenue: { $sum: "$totalPrice" },
+        },
+      },
+      { $sort: { totalRevenue: -1 } },
+    ]);
+
+    res.json(result);
+  } catch (err) {
+    console.error("Error getting total turnover by shop:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// 🔝 Top sold products by quantity (per shop)
+app.get("/statistics/top-products", async (req, res) => {
+  try {
+    const { shopId } = req.query;
+    const matchStage = shopId ? { shopId: new mongoose.Types.ObjectId(shopId) } : {};
+
+    const result = await Order.aggregate([
+      { $match: matchStage },
+      { $unwind: "$products" },
+      {
+        $group: {
+          _id: "$products.title",
+          totalQuantity: { $sum: "$products.quantity" },
+        },
+      },
+      { $sort: { totalQuantity: -1 } },
+      { $limit: 10 },
+    ]);
+
+    res.json(result);
+  } catch (err) {
+    console.error("Error getting top products:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 // ======================
 // Start Server

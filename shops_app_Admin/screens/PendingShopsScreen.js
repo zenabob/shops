@@ -10,7 +10,7 @@ import {
 import axios from "axios";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
-import { API_BASE_URL } from "../Backend/config"; 
+import { API_BASE_URL } from "../config"; 
 
 const PendingShopsScreen = () => {
   const [pendingShops, setPendingShops] = useState([]);

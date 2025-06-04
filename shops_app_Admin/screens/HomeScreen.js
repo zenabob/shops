@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_BASE_URL } from "../Backend/config"; 
+import { API_BASE_URL } from "../config"; 
 
 const HomeScreen = () => {
   const navigation = useNavigation();

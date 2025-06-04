@@ -4,10 +4,36 @@ const axios = require("axios");
 
 // ✅ Add "type" to control file format
 const apps = [
-  { name: "shops_app_sellers", path: "../shops_app_sellers/ngrok-url.js", suffix: "shops_app_sellers", type: "frontend" },
-  { name: "shops_app_buyers", path: "../shops_app_buyers/ngrok-url.js", suffix: "shops_app_buyers", type: "frontend" },
-  { name: "shops_app_Admin", path: "../shops_app_Admin/ngrok-url.js", suffix: "shops_app_Admin", type: "frontend" },
-  { name: "shops_app_buyers_backend", path: "../shops_app_buyers/Backend/ngrok-url.js", suffix: "shops_app_sellers", type: "backend" },
+  {
+    name: "shops_app_sellers",
+    path: "../shops_app_sellers/ngrok-url.js",
+    suffix: "shops_app_sellers",
+    type: "frontend",
+  },
+  {
+    name: "shops_app_buyers",
+    path: "../shops_app_buyers/ngrok-url.js",
+    suffix: "shops_app_buyers",
+    type: "frontend",
+  },
+  {
+    name: "shops_app_Admin",
+    path: "../shops_app_Admin/ngrok-url.js",
+    suffix: "shops_app_Admin",
+    type: "frontend",
+  },
+  {
+    name: "shops_app_buyers_backend",
+    path: "../shops_app_buyers/Backend/ngrok-url.js",
+    suffix: "shops_app_sellers", // might need renaming
+    type: "backend",
+  },
+  {
+    name: "shops_app_admin_backend", // ✅ NEW ENTRY
+    path: "../shops_app_Admin/Backend/ngrok-url.js", // ✅ your admin backend path
+    suffix: "shops_app_Admin", // ✅ same as frontend to match routing if needed
+    type: "backend",
+  },
 ];
 
 const possiblePorts = [4041, 4040];
@@ -46,6 +72,7 @@ export const API_BASE_URL = \`\${NGROK_URL}/${suffix}\`;
 `;
     } else if (type === "backend") {
       content = `
+// Auto-generated ngrok config for ${suffix}
 module.exports = {
   NGROK_URL: "${ngrokUrl}",
 };

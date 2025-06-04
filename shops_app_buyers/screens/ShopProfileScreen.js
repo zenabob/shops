@@ -15,6 +15,7 @@ import { useNavigation } from "@react-navigation/native";
 import ProductDetails from "../modals/ProductDetails";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {API_BASE_URL} from "../config";
+import { SELLER_API_BASE_URL } from "../seller-api";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -91,7 +92,7 @@ useEffect(() => {
 
   const fetchShopData = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/profile/${shopId}`);
+      const res = await axios.get(`${SELLER_API_BASE_URL}/profile/${shopId}`);
       setShopData(res.data);
     } catch (err) {
       console.error("Error fetching shop data:", err);
@@ -101,7 +102,7 @@ useEffect(() => {
   const fetchCategories = async () => {
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/profile/${shopId}/category`
+        `${SELLER_API_BASE_URL}/profile/${shopId}/category`
       );
       setCategories(res.data);
     } catch (err) {
@@ -112,7 +113,7 @@ useEffect(() => {
   const fetchCategoriesWithProducts = async () => {
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/profile/${shopId}/categories-with-products`
+        `${SELLER_API_BASE_URL}/profile/${shopId}/categories-with-products`
       );
       const result = {};
       res.data.forEach((category) => {
@@ -136,10 +137,24 @@ useEffect(() => {
         />
       </TouchableOpacity>
       <ScrollView contentContainerStyle={styles.content}>
-        <Image source={{ uri: shopData.cover }} style={styles.cover} />
+<Image
+  source={{
+    uri: shopData.cover?.startsWith("http")
+      ? shopData.cover
+      : `${SELLER_API_BASE_URL}${shopData.cover}`,
+  }}
+  style={styles.cover}
+/>
 
         <View style={styles.logoContainer}>
-          <Image source={{ uri: shopData.logo }} style={styles.logo} />
+<Image
+  source={{
+    uri: shopData.logo?.startsWith("http")
+      ? shopData.logo
+      : `${SELLER_API_BASE_URL}${shopData.logo}`,
+  }}
+  style={styles.logo}
+/>
         </View>
 
         <Text style={styles.shopName}>{shopData.name}</Text>
@@ -168,9 +183,14 @@ useEffect(() => {
                     }}
                   >
                     <Image
-                      source={{ uri: product.MainImage }}
-                      style={styles.productImage}
-                    />
+  source={{
+    uri: product.MainImage?.startsWith("http")
+      ? product.MainImage
+      : `${SELLER_API_BASE_URL}${product.MainImage}`,
+  }}
+  style={styles.productImage}
+/>
+
                     <Text style={styles.productTitle} numberOfLines={1}>
                       {product.title}
                     </Text>
@@ -222,9 +242,14 @@ useEffect(() => {
                     }}
                   >
                     <Image
-                      source={{ uri: product.MainImage }}
-                      style={styles.productImage}
-                    />
+  source={{
+    uri: product.MainImage?.trim().startsWith("http")
+      ? product.MainImage.trim()
+      : `${SELLER_API_BASE_URL}${product.MainImage?.trim()}`,
+  }}
+  style={styles.productImage}
+/>
+
                     <Text style={styles.productTitle} numberOfLines={1}>
                       {product.title}
                     </Text>
@@ -356,7 +381,7 @@ const styles = StyleSheet.create({
   },
   productCard: {
     width: 140,
-    height: 220,
+    height: 240,
     marginRight: 10,
     backgroundColor: "#f8f8f8",
     // padding: 10,
@@ -367,7 +392,7 @@ const styles = StyleSheet.create({
     width: 140,
     height: 150,
     marginBottom: 5,
-    resizeMode: "cover",
+    resizeMode: "contain",
   },
   productTitle: {
     fontSize: 13,

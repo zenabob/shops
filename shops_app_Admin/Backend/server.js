@@ -4,7 +4,12 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
 const Order = require("../models/Order");
+const Notification = require("../models/Notification");
+const axios = require("axios");
 const app = express();
+const { NGROK_URL } = require("./ngrok-url");
+const API_BASE_URL = `${NGROK_URL}/shops_app_buyers`;
+
 app.use(cors());
 app.use(express.json());
 
@@ -94,7 +99,7 @@ app.post("/loginAdmin", async (req, res) => {
 });
 app.get('/admin/grouped-orders', async (req, res) => {
   try {
-    const { customer, product, location, date, sort, shopName } = req.query;
+    const { customer, product, location, date, sort, shopName , status } = req.query;
 
     const filter = {};
 
@@ -105,6 +110,9 @@ app.get('/admin/grouped-orders', async (req, res) => {
     if (location) {
       filter.userLocation = { $regex: new RegExp(location, 'i') };
     }
+if (status && status !== "All") {
+  filter.status = status;
+}
 
     if (date) {
       const start = new Date(date);
@@ -258,21 +266,31 @@ app.get("/admin/pending-shops", async (req, res) => {
 });
 
 app.delete("/admin/delete-shop/:shopId", async (req, res) => {
+  const { shopId } = req.params;
+
   try {
-    const { shopId } = req.params;
+    // 1. حذف المحل من قاعدة البيانات
+    await Shop.findByIdAndDelete(shopId);
 
-    const deleted = await Shop.findByIdAndDelete(shopId);
+    // 2. حذف الطلبات المرتبطة بالمحل
+    await Order.deleteMany({ shopId });
 
-    if (!deleted) {
-      return res.status(404).json({ message: "Shop not found" });
-    }
+    // 3. حذف الإشعارات المرتبطة بالمحل
+    await Notification.deleteMany({ shopId });
 
-    res.json({ message: "Shop deleted successfully" });
-  } catch (err) {
-    console.error("❌ Error deleting shop:", err);
-    res.status(500).json({ message: "Server error" });
+    // 4. إرسال طلب إلى سيرفر الكلاينت لحذف السلة والمفضلات
+    const buyerResponse = await axios.delete(`${API_BASE_URL}/admin/delete-shop-data/${shopId}`);
+
+    res.status(200).json({
+      message: "Shop and all related data deleted from admin and client servers",
+      clientResult: buyerResponse.data,
+    });
+  } catch (error) {
+    console.error("❌ Error deleting shop and related data:", error.message);
+    res.status(500).json({ error: "Failed to delete shop and related data." });
   }
 });
+
 app.put("/admin/remove-approval/:shopId", async (req, res) => {
   try {
     const { shopId } = req.params;

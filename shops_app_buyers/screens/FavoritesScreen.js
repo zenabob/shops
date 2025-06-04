@@ -12,7 +12,7 @@ import {
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 import ProductDetails from "../modals/ProductDetails";
-import {API_BASE_URL} from "../config";
+import { API_BASE_URL } from "../config";
 import { SELLER_API_BASE_URL } from "../seller-api";
 
 const { width } = Dimensions.get("window");
@@ -26,6 +26,7 @@ const FavoritesScreen = ({ route }) => {
   const [selectedColorName, setSelectedColorName] = useState(null);
   const [selectedMainImage, setSelectedMainImage] = useState(null);
   const [selectedColorImages, setSelectedColorImages] = useState([]);
+  const [selectedSize, setSelectedSize] = useState(null);
 
   const navigation = useNavigation();
 
@@ -42,7 +43,10 @@ const FavoritesScreen = ({ route }) => {
       const res = await axios.get(`${API_BASE_URL}/user/${userId}/favorites`);
       setFavorites(res.data);
     } catch (err) {
-      console.error("❌ Failed to fetch favorites:", err.response?.data || err.message);
+      console.error(
+        "❌ Failed to fetch favorites:",
+        err.response?.data || err.message
+      );
     }
   };
 
@@ -94,7 +98,9 @@ const FavoritesScreen = ({ route }) => {
       setSelectedProductDetails({ ...fullProduct, shopId: resolvedShopId });
       setSelectedColorName(firstColor?.name || "");
       setSelectedMainImage(
-        firstColor?.previewImage || firstColor?.images?.[0] || fullProduct.MainImage
+        firstColor?.previewImage ||
+          firstColor?.images?.[0] ||
+          fullProduct.MainImage
       );
       setSelectedColorImages(firstColor?.images || []);
       setShowDetailModal(true);
@@ -118,14 +124,16 @@ const FavoritesScreen = ({ route }) => {
         key={`${item.productId}_${index}`}
         onPress={() => openProductDetails(item)}
       >
-<Image
-  source={{
-    uri: item.image?.startsWith("http")
-      ? item.image
-      : `${SELLER_API_BASE_URL}${item.image.startsWith("/") ? "" : "/"}${item.image}`,
-  }}
-  style={styles.image}
-/>
+        <Image
+          source={{
+            uri: item.image?.startsWith("http")
+              ? item.image
+              : `${SELLER_API_BASE_URL}${
+                  item.image.startsWith("/") ? "" : "/"
+                }${item.image}`,
+          }}
+          style={styles.image}
+        />
         <Text style={styles.title} numberOfLines={2}>
           {item.title}
         </Text>
@@ -144,8 +152,14 @@ const FavoritesScreen = ({ route }) => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => navigation.navigate("Main")} style={styles.backButton}>
-        <Image source={require("../assets/img/BlackArrow.png")} style={styles.backIcon} />
+      <TouchableOpacity
+        onPress={() => navigation.navigate("Main")}
+        style={styles.backButton}
+      >
+        <Image
+          source={require("../assets/img/BlackArrow.png")}
+          style={styles.backIcon}
+        />
       </TouchableOpacity>
 
       <FlatList
@@ -172,6 +186,7 @@ const FavoritesScreen = ({ route }) => {
           shopId={selectedProductDetails?.shopId}
           userId={userId}
           onFavoriteToggle={handleFavoriteToggle} // ✅ مهم
+          setSelectedSize={setSelectedSize}
         />
       )}
     </View>

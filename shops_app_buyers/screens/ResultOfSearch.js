@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import ProductDetails from "../modals/ProductDetails";
 import {API_BASE_URL} from "../config";
+import { SELLER_API_BASE_URL } from "../seller-api";
 
 const ResultOfSearch = ({ route, navigation }) => {
   const { shopId, categoryName, userId, results } = route.params;
@@ -38,9 +39,9 @@ const ResultOfSearch = ({ route, navigation }) => {
       let url = "";
 
       if (shopId) {
-        url = `${API_BASE_URL}/public/search-category-products?q=${categoryName}`;
+        url = `${SELLER_API_BASE_URL}/public/search-category-products?q=${categoryName}`;
       } else {
-        url = `${API_BASE_URL}/public/all-products`;
+        url = `${SELLER_API_BASE_URL}/public/all-products`;
       }
 
       const res = await fetch(url);
@@ -180,7 +181,7 @@ const ResultOfSearch = ({ route, navigation }) => {
   const handleProductPress = async (item) => {
     try {
       const res = await fetch(
-        `${API_BASE_URL}/public/shop/${item.shopId}/product/${item._id}`
+        `${SELLER_API_BASE_URL}/public/shop/${item.shopId}/product/${item._id}`
       );
       const data = await res.json();
       const product = data.product;
@@ -219,7 +220,15 @@ const ResultOfSearch = ({ route, navigation }) => {
       style={styles.productCard}
       onPress={() => handleProductPress(item)}
     >
-      <Image source={{ uri: item.MainImage }} style={styles.productImage} />
+      <Image
+  source={{
+    uri: item.MainImage?.startsWith("http")
+      ? item.MainImage
+      : `${SELLER_API_BASE_URL}${item.MainImage}`,
+  }}
+  style={styles.productImage}
+/>
+
       <Text style={styles.productTitle}>{item.title}</Text>
       {hasValidOffer ? (
         <View style={{ alignItems: "center" }}>

@@ -5,13 +5,14 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
-  Image,
   ImageBackground,
   Dimensions,
   FlatList,
   ScrollView,
   Alert,
 } from "react-native";
+import { Image} from 'expo-image';
+
 import { SELLER_API_BASE_URL } from "../seller-api";
 
 import { TouchableWithoutFeedback, Keyboard } from "react-native";
@@ -46,17 +47,29 @@ const MainScreen = () => {
   const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
 
   const fetchData = async () => {
-    try {
-      const userId = await AsyncStorage.getItem("userId");
-      setUserId(userId);
+  try {
+    const userId = await AsyncStorage.getItem("userId");
+    setUserId(userId);
 
-      const res = await fetch(`${SELLER_API_BASE_URL}/public/all-products`);
-      const data = await res.json();
-      setProducts(data.length > 0 ? data : []);
-    } catch (error) {
-      console.error("❌ Error fetching all products:", error);
-    }
-  };
+    const res = await fetch(`${SELLER_API_BASE_URL}/public/all-products`);
+    const data = await res.json();
+    setProducts(data.length > 0 ? data : []);
+
+    // ✅ Preload all MainImage URIs for better performance
+    const imageList = data
+      .filter((item) => typeof item.MainImage === "string")
+      .map((item) => ({
+        uri: item.MainImage.startsWith("http")
+          ? item.MainImage
+          : `${SELLER_API_BASE_URL}${item.MainImage}`,
+      }));
+
+
+  } catch (error) {
+    console.error("❌ Error fetching all products:", error);
+  }
+};
+
 
   const fetchCovers = async () => {
     try {
@@ -473,10 +486,11 @@ const MainScreen = () => {
                     activeOpacity={0.8}
                   >
                     <Image
-  source={{
+ source={{
     uri: shop.cover?.startsWith("http")
       ? shop.cover
       : `${SELLER_API_BASE_URL}${shop.cover}`,
+ 
   }}
   style={styles.sliderImage}
 />
@@ -593,11 +607,13 @@ const MainScreen = () => {
           uri: item.img.startsWith("http")
             ? item.img
             : `${SELLER_API_BASE_URL}${item.img}`,
+          
         }
-      : item.img 
+      : item.img
   }
   style={styles.categoryImage}
 />
+
 
 
                       )}
@@ -637,11 +653,12 @@ const MainScreen = () => {
         ? item.MainImage.startsWith("http")
           ? item.MainImage
           : `${SELLER_API_BASE_URL}${item.MainImage}`
-        : "https://via.placeholder.com/150", 
+        : "https://via.placeholder.com/150",
+ 
   }}
   style={styles.productImage}
-  resizeMode="cover"
 />
+
 
               <Text numberOfLines={1} style={styles.productTitle}>
                 {item.title}

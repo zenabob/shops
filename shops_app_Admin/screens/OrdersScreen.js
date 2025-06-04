@@ -1,3 +1,5 @@
+// ✅ الكود الكامل لملف OrdersScreen.js مع دعم الفلترة بالحالة (Status)
+
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -9,12 +11,12 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import axios from "axios";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { API_BASE_URL } from "../Backend/config"; 
-
-const Order = require("../models/Order");
+import { API_BASE_URL } from "../config";
 
 const OrdersScreen = () => {
   const [groupedOrders, setGroupedOrders] = useState({});
@@ -28,119 +30,97 @@ const OrdersScreen = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [nameSuggestions, setNameSuggestions] = useState([]);
   const [productSuggestions, setProductSuggestions] = useState([]);
-  const [allOrders, setAllOrders] = useState([]);
   const [shopName, setShopName] = useState("");
   const [shopNameSuggestions, setShopNameSuggestions] = useState([]);
   const [activeTab, setActiveTab] = useState("undelivered");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [statusListVisible, setStatusListVisible] = useState(false);
 
-const markAsDelivered = async (orderId) => {
-  try {
-    const response = await axios.put(
-      `${API_BASE_URL}/admin/orders/${orderId}/deliver`
-    );
-    const updatedOrder = response.data.order;
-
-    setGroupedOrders((prevGrouped) => {
-      const newGrouped = { ...prevGrouped };
-      for (let shop in newGrouped) {
-        newGrouped[shop] = newGrouped[shop].map((order) =>
-          order._id === updatedOrder._id ? updatedOrder : order
-        );
-      }
-      return newGrouped;
-    });
-  } catch (error) {
-    console.error("Failed to mark as delivered", error);
-  }
-};
-
-
+  const statusOptions = ["Delivered", "Delivered to Admin", "All"];
 
   const fetchOrders = async (filters = {}) => {
-  setLoading(true);
-  try {
-    const params = {
-  sort: filters.sortOrder || sortOrder,
-  customer: filters.customerName || "",
-  product: filters.productTitle || "",
-  location: filters.orderLocation || "",
-  shopName: filters.shopName || "", 
-};
-
-    if (filters.orderDate) {
-      params.date = filters.orderDate.toISOString().split("T")[0];
+    setLoading(true);
+    try {
+      const params = {
+        sort: filters.sortOrder || sortOrder,
+        customer: filters.customerName || "",
+        product: filters.productTitle || "",
+        location: filters.orderLocation || "",
+        shopName: filters.shopName || "",
+        status: filters.statusFilter || "",
+      };
+      if (filters.orderDate) {
+        params.date = filters.orderDate.toISOString().split("T")[0];
+      }
+      const res = await axios.get(`${API_BASE_URL}/admin/grouped-orders`, {
+        params,
+      });
+      setGroupedOrders(res.data.grouped);
+    } catch (err) {
+      console.error("Error fetching orders:", err);
+    } finally {
+      setLoading(false);
     }
-    const res = await axios.get(`${API_BASE_URL}/admin/grouped-orders`, { params });
-    setGroupedOrders(res.data.grouped);
-    setAllOrders(res.data.all);
-    setLoading(false);
-  } catch (err) {
-    console.error("Error fetching grouped orders:", err);
-    setLoading(false);
-  }
-};
-
+  };
 
   useEffect(() => {
     fetchOrders();
   }, []);
-const handleShopNameChange = (text) => {
-  setShopName(text);
-  const allShopNames =
-    groupedOrders && typeof groupedOrders === "object"
-      ? Array.from(
-          new Set(
-            Object.entries(groupedOrders).map(([shop]) => shop)
-          )
-        )
-      : [];
-
-  setShopNameSuggestions(
-    allShopNames.filter((name) =>
-      name.toLowerCase().includes(text.toLowerCase())
-    )
-  );
-};
-const undoDelivery = async (orderId) => {
-  try {
-    const response = await axios.put(
-      `${API_BASE_URL}/admin/orders/${orderId}/undo-deliver`
-    );
-    const updatedOrder = response.data.order;
-
-    setGroupedOrders((prevGrouped) => {
-      const newGrouped = { ...prevGrouped };
-      for (let shop in newGrouped) {
-        newGrouped[shop] = newGrouped[shop].map((order) =>
-          order._id === updatedOrder._id ? updatedOrder : order
-        );
-      }
-      return newGrouped;
-    });
-  } catch (error) {
-    console.error("Failed to undo delivery", error);
-  }
-};
-
-  const allCustomerNames =
-    groupedOrders && typeof groupedOrders === "object"
-      ? Array.from(
-          new Set(
-            Object.values(groupedOrders)
-              .flat()
-              .map((order) => order.userName)
-              .filter(Boolean)
-          )
-        )
-      : [];
 
   const handleCustomerNameChange = (text) => {
     setCustomerName(text);
-    setNameSuggestions(
-      allCustomerNames.filter((name) =>
-        name.toLowerCase().includes(text.toLowerCase())
-      )
-    );
+    const allCustomerNames = Object.values(groupedOrders)
+      .flat()
+      .map((order) => order.userName)
+      .filter(Boolean);
+    setNameSuggestions([
+      ...new Set(
+        allCustomerNames.filter((name) =>
+          name.toLowerCase().includes(text.toLowerCase())
+        )
+      ),
+    ]);
+  };
+  const markAsDelivered = async (orderId) => {
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/admin/orders/${orderId}/deliver`
+      );
+      const updatedOrder = response.data.order;
+
+      setGroupedOrders((prev) => {
+        const updated = { ...prev };
+        for (let shop in updated) {
+          updated[shop] = updated[shop].map((order) =>
+            order._id === updatedOrder._id ? updatedOrder : order
+          );
+        }
+        return updated;
+      });
+    } catch (err) {
+      console.error("Failed to mark as delivered:", err);
+    }
+  };
+
+  const undoDelivery = async (orderId) => {
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/admin/orders/${orderId}/undo-deliver`
+      );
+      const updatedOrder = response.data.order;
+
+      setGroupedOrders((prev) => {
+        const updated = { ...prev };
+        for (let shop in updated) {
+          updated[shop] = updated[shop].map((order) =>
+            order._id === updatedOrder._id ? updatedOrder : order
+          );
+        }
+        return updated;
+      });
+    } catch (err) {
+      console.error("Failed to undo delivery:", err);
+    }
   };
 
   const handleProductTitleChange = (text) => {
@@ -159,10 +139,20 @@ const undoDelivery = async (orderId) => {
         .flat()
         .flatMap((order) => order.products.map((p) => p.title));
     }
-    const uniqueProducts = Array.from(new Set(productPool));
+    const uniqueProducts = [...new Set(productPool)];
     setProductSuggestions(
       uniqueProducts.filter((title) =>
         title.toLowerCase().includes(text.toLowerCase())
+      )
+    );
+  };
+
+  const handleShopNameChange = (text) => {
+    setShopName(text);
+    const allShopNames = Object.keys(groupedOrders);
+    setShopNameSuggestions(
+      allShopNames.filter((name) =>
+        name.toLowerCase().includes(text.toLowerCase())
       )
     );
   };
@@ -178,235 +168,305 @@ const undoDelivery = async (orderId) => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      
-<View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 10 , marginTop:10}}>
-  <TouchableOpacity onPress={() => setActiveTab("undelivered")}>
-    <Text style={{ fontWeight: activeTab === "undelivered" ? "bold" : "normal" }}>Not Delivered Yet</Text>
-  </TouchableOpacity>
-  <TouchableOpacity onPress={() => setActiveTab("delivered")}>
-    <Text style={{ fontWeight: activeTab === "delivered" ? "bold" : "normal" }}>Delivered</Text>
-  </TouchableOpacity>
-</View>
-<TouchableOpacity
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-around",
+          marginBottom: 10,
+          marginTop: 10,
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => setActiveTab("undelivered")}
+          style={[
+            styles.tabButton,
+            activeTab === "undelivered" && styles.activeTabButton,
+          ]}
+        >
+          <Text
+            style={[
+              styles.tabButtonText,
+              activeTab === "undelivered" && styles.activeTabButtonText,
+            ]}
+          >
+            Not Delivered Yet
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => setActiveTab("delivered")}
+          style={[
+            styles.tabButton,
+            activeTab === "delivered" && styles.activeTabButton,
+          ]}
+        >
+          <Text
+            style={[
+              styles.tabButtonText,
+              activeTab === "delivered" && styles.activeTabButtonText,
+            ]}
+          >
+            Delivered
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity
         onPress={() => setFilterModalVisible(true)}
         style={styles.filterButton}
       >
         <Text style={styles.filterButtonText}>Filter</Text>
       </TouchableOpacity>
+
       {Object.entries(groupedOrders).map(([shopName, orders]) => (
-  <View key={shopName} style={styles.shopBlock}>
-    <Text style={styles.shopTitle}>{shopName}</Text>
-    {orders
-      .filter((order) =>
-        activeTab === "undelivered" ? order.status !== "Delivered" : order.status === "Delivered"
-      )
-      .map((order) => (
-        <View key={order._id} style={styles.orderCard}>
-          <Text style={styles.orderId}>Order ID: {order.orderId}</Text>
-          <Text>Customer: {order.userName || "N/A"} | Phone: 0{order.userPhone || "N/A"}</Text>
-          <Text>Location: {order.userLocation || "N/A"}</Text>
-          <Text>Status: {order.status}</Text>
-          <Text style={{ fontSize: 12, color: "#555", marginTop: 5 }}>
-  Created At: {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "N/A"}
-</Text>
+        <View key={shopName} style={styles.shopBlock}>
+          <Text style={styles.shopTitle}>{shopName}</Text>
+          {orders
+            .filter((order) =>
+              activeTab === "undelivered"
+                ? order.status !== "Delivered"
+                : order.status === "Delivered"
+            )
+            .map((order) => (
+              <View key={order._id} style={styles.orderCard}>
+                <Text style={styles.orderId}>Order ID: {order.orderId}</Text>
+                <Text>
+                  Customer: {order.userName || "N/A"} | Phone: 0
+                  {order.userPhone || "N/A"}
+                </Text>
+                <Text>Location: {order.userLocation || "N/A"}</Text>
+                <Text>Status: {order.status}</Text>
 
-{order.deliveredToAdminAt && (
-  <Text style={{ fontSize: 12, color: "#555" }}>
-    Delivered to Admin: {new Date(order.deliveredToAdminAt).toLocaleDateString()}
-  </Text>
-)}
+                <Text style={{ fontSize: 12, color: "#555", marginTop: 5 }}>
+                  Created At:{" "}
+                  {order.createdAt
+                    ? new Date(order.createdAt).toLocaleDateString()
+                    : "N/A"}
+                </Text>
 
+                {order.deliveredToAdminAt && (
+                  <Text style={{ fontSize: 12, color: "#555" }}>
+                    Delivered to Admin:{" "}
+                    {new Date(order.deliveredToAdminAt).toLocaleDateString()}
+                  </Text>
+                )}
 
-{order.status === "Delivered" && order.deliveredAt && (
-  <Text style={{ fontSize: 12, color: "#28a745" }}>
-    Delivered to Customer: {new Date(order.deliveredAt).toLocaleDateString()}
-  </Text>
-)}
+                {order.deliveredAt && (
+                  <Text style={{ fontSize: 12, color: "#28a745" }}>
+                    Delivered to Customer:{" "}
+                    {new Date(order.deliveredAt).toLocaleDateString()}
+                  </Text>
+                )}
 
-{activeTab === "delivered" && order.status === "Delivered" && (
-  <TouchableOpacity
-    style={{ marginTop: 10 }}
-    onPress={() => undoDelivery(order._id)}
-  >
-    <Text style={{ color: "red", fontWeight: "bold" }}>↩ Undo Delivery</Text>
-  </TouchableOpacity>
-)}
+                <Text style={{ fontWeight: "bold", marginTop: 5 }}>
+                  Total: ₪{order.totalPrice?.toFixed(2)}
+                </Text>
 
-          <Text>Total: ₪{order.totalPrice?.toFixed(2)}</Text>
-          <Text style={styles.sectionTitle}>Products:</Text>
-          {order.products.map((prod, i) => (
-            <Text key={i} style={styles.productItem}>
-              • {prod.title} - {prod.quantity}× ₪{prod.price} | {prod.selectedColor} / {prod.selectedSize}
-            </Text>
-          ))}
-          {activeTab === "undelivered" && (
-            <TouchableOpacity
-              style={{ marginTop: 10 }}
-              onPress={() => markAsDelivered(order._id)}
-            >
-              <Text style={{ color: "green", fontWeight: "bold" }}>✅ Mark as Delivered</Text>
-            </TouchableOpacity>
-          )}
+                <Text style={{ fontWeight: "bold", marginTop: 5 }}>
+                  Products:
+                </Text>
+                {order.products.map((p, index) => (
+                  <Text
+                    key={index}
+                    style={{
+                      fontSize: 13,
+                      color: "#555",
+                      marginLeft: 10,
+                      marginTop: 2,
+                    }}
+                  >
+                    • {p.title} - {p.quantity}× ₪{p.price} | {p.selectedColor} /{" "}
+                    {p.selectedSize}
+                  </Text>
+                ))}
+
+                {order.status === "Delivered to Admin" && (
+                  <TouchableOpacity
+                    style={styles.deliveredButton}
+                    onPress={() => markAsDelivered(order._id)}
+                  >
+                    <Text style={styles.deliveredButtonText}>
+                      Mark as Delivered
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {order.status === "Delivered" && (
+                  <TouchableOpacity
+                    style={styles.undoButton}
+                    onPress={() => undoDelivery(order._id)}
+                  >
+                    <Text style={styles.undoButtonText}>Undo Delivery</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))}
         </View>
       ))}
-  </View>
-))}
 
-
+      {/* Filter Modal */}
       <Modal visible={filterModalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Filter Orders</Text>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Filter Orders</Text>
 
-            <Text style={styles.label}>Customer Name</Text>
-            <TextInput
-              placeholder="e.g. Ahmed"
-              value={customerName}
-              onChangeText={handleCustomerNameChange}
-              style={styles.modalInput}
-            />
-            {customerName.length > 0 && nameSuggestions.length > 0 && (
-              <FlatList
-                data={nameSuggestions}
-                keyExtractor={(item, index) => index.toString()}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    onPress={() => {
-                      setCustomerName(item);
-                      setNameSuggestions([]);
-                    }}
-                  >
-                    <Text style={styles.suggestionItem}>{item}</Text>
-                  </TouchableOpacity>
-                )}
+              <Text style={styles.label}>Customer Name</Text>
+              <TextInput
+                placeholder="e.g. Ahmed"
+                value={customerName}
+                onChangeText={handleCustomerNameChange}
+                style={styles.modalInput}
               />
-            )}
-             <Text style={styles.label}>Shop Name</Text>
-<TextInput
-  placeholder="e.g. Zara"
-  value={shopName}
-  onChangeText={handleShopNameChange}
-  style={styles.modalInput}
-/>
 
-{shopName.length > 0 && shopNameSuggestions.length > 0 && (
-  <FlatList
-    data={shopNameSuggestions}
-    keyExtractor={(item, index) => index.toString()}
-    renderItem={({ item }) => (
-      <TouchableOpacity
-        onPress={() => {
-          setShopName(item);
-          setShopNameSuggestions([]);
-        }}
-      >
-        <Text style={styles.suggestionItem}>{item}</Text>
-      </TouchableOpacity>
-    )}
-  />
-)}
-
-
-            <Text style={styles.label}>Product Title</Text>
-            <TextInput
-              placeholder="e.g. White T-shirt"
-              value={productTitle}
-              onChangeText={handleProductTitleChange}
-              style={styles.modalInput}
-            />
-            {productTitle.length > 0 && productSuggestions.length > 0 && (
-              <FlatList
-                data={productSuggestions}
-                keyExtractor={(item, index) => index.toString()}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    onPress={() => {
-                      setProductTitle(item);
-                      setProductSuggestions([]);
-                    }}
-                  >
-                    <Text style={styles.suggestionItem}>{item}</Text>
-                  </TouchableOpacity>
-                )}
+              <Text style={styles.label}>Shop Name</Text>
+              <TextInput
+                placeholder="e.g. Zara"
+                value={shopName}
+                onChangeText={handleShopNameChange}
+                style={styles.modalInput}
               />
-            )}
 
-            <Text style={styles.label}>Location</Text>
-            <TextInput
-              placeholder="e.g. Jerusalem"
-              value={orderLocation}
-              onChangeText={setOrderLocation}
-              style={styles.modalInput}
-            />
-
-            <Text style={styles.label}>Date</Text>
-            <TouchableOpacity
-              onPress={() => setShowDatePicker(true)}
-              style={[styles.modalInput, { justifyContent: "center" }]}
-            >
-              <Text>
-                {orderDate
-                  ? orderDate.toISOString().split("T")[0]
-                  : "Pick a date"}
-              </Text>
-            </TouchableOpacity>
-            {showDatePicker && (
-              <DateTimePicker
-                value={orderDate || new Date()}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                  setShowDatePicker(false);
-                  if (selectedDate) setOrderDate(selectedDate);
-                }}
+              <Text style={styles.label}>Product Title</Text>
+              <TextInput
+                placeholder="e.g. White T-shirt"
+                value={productTitle}
+                onChangeText={handleProductTitleChange}
+                style={styles.modalInput}
               />
-            )}
 
-            <TouchableOpacity
-              onPress={() =>
-                setSortOrder(sortOrder === "desc" ? "asc" : "desc")
-              }
-            >
-              <Text style={styles.sortText}>
-                Sort: {sortOrder === "desc" ? "Newest First" : "Oldest First"}
-              </Text>
-            </TouchableOpacity>
+              <Text style={styles.label}>Location</Text>
+              <TextInput
+                placeholder="e.g. Jerusalem"
+                value={orderLocation}
+                onChangeText={setOrderLocation}
+                style={styles.modalInput}
+              />
 
-            <View style={styles.modalActions}>
+              <Text style={styles.label}>Date</Text>
               <TouchableOpacity
+                onPress={() => setShowDatePicker(true)}
+                style={[styles.modalInput, { justifyContent: "center" }]}
+              >
+                <Text>
+                  {orderDate
+                    ? orderDate.toISOString().split("T")[0]
+                    : "Pick a date"}
+                </Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={orderDate || new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowDatePicker(false);
+                    if (selectedDate) setOrderDate(selectedDate);
+                  }}
+                />
+              )}
+
+              <Text style={styles.label}>Status</Text>
+              <TouchableOpacity
+                style={[styles.modalInput, { justifyContent: "center" }]}
                 onPress={() => {
-                  setCustomerName("");
-                  setProductTitle("");
-                  setOrderLocation("");
-                  setOrderDate(null);
-                  setSortOrder("desc");
+                  Keyboard.dismiss();
+                  setFilterModalVisible(false);
+                  setTimeout(() => setStatusListVisible(true), 300);
                 }}
               >
-                <Text style={{ color: "red", fontWeight: "bold" }}>Clear</Text>
+                <Text style={{ color: statusFilter ? "#000" : "#A9A9A9" }}>
+                  {statusFilter || "Select Status..."}
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity
-   onPress={() => {
-    fetchOrders({
-      sortOrder,
-      customerName,
-      productTitle,
-      orderLocation,
-      orderDate,
-      shopName,
-    });
-    setFilterModalVisible(false);
-  }}
->
-  <Text style={{ color: "#77BBA2", fontWeight: "bold" }}>Apply</Text>
-</TouchableOpacity>
 
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginTop: 15,
+                }}
+              >
+                <TouchableOpacity
+                  style={{ flex: 1, alignItems: "center" }}
+                  onPress={() => {
+                    setCustomerName("");
+                    setProductTitle("");
+                    setOrderLocation("");
+                    setOrderDate(null);
+                    setShopName("");
+                    setStatusFilter("");
+                  }}
+                >
+                  <Text style={{ color: "#888", fontWeight: "bold" }}>
+                    Clear
+                  </Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
-                <Text style={{ color: "#777", fontWeight: "bold" }}>Close</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ flex: 1, alignItems: "center" }}
+                  onPress={() => {
+                    fetchOrders({
+                      sortOrder,
+                      customerName,
+                      productTitle,
+                      orderLocation,
+                      orderDate,
+                      shopName,
+                      statusFilter,
+                    });
+                    setFilterModalVisible(false);
+                  }}
+                >
+                  <Text style={{ color: "#77BBA2", fontWeight: "bold" }}>
+                    Apply
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{ flex: 1, alignItems: "center" }}
+                  onPress={() => setFilterModalVisible(false)}
+                >
+                  <Text style={{ color: "#777", fontWeight: "bold" }}>
+                    Close
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* Status Picker Modal */}
+      <Modal
+        transparent={true}
+        animationType="slide"
+        visible={statusListVisible}
+        onRequestClose={() => setStatusListVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPressOut={() => setStatusListVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            {["Delivered", "Delivered to Admin", ""].map((option) => (
+              <TouchableOpacity
+                key={option}
+                style={styles.modalOption}
+                onPress={() => {
+                  setStatusFilter(option); // حفظ الحالة
+                  setStatusListVisible(false); // إغلاق مودال الحالة
+                  setTimeout(() => {
+                    setFilterModalVisible(true); // إعادة فتح مودال الفلترة
+                  }, 300); // تأخير بسيط لإعادة الفتح بسلاسة
+                }}
+              >
+                <Text style={styles.modalText}>{option || "All"}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
       </Modal>
     </ScrollView>
   );
@@ -421,7 +481,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#77BBA2",
     padding: 8,
     borderRadius: 8,
-    marginTop:20,
+    marginTop: 20,
   },
   filterButtonText: { color: "#fff", fontWeight: "bold" },
   shopBlock: { marginBottom: 30 },
@@ -439,8 +499,6 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   orderId: { fontWeight: "bold", marginBottom: 5, color: "#000" },
-  sectionTitle: { fontWeight: "bold", marginTop: 10 },
-  productItem: { fontSize: 13, color: "#555", marginLeft: 10, marginTop: 5 },
   modalOverlay: {
     flex: 1,
     justifyContent: "center",
@@ -466,22 +524,63 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: { fontSize: 14, fontWeight: "bold", marginBottom: 5, color: "#333" },
-  suggestionItem: {
-    paddingVertical: 8,
-    borderBottomColor: "#eee",
+  modalOption: {
+    paddingVertical: 12,
     borderBottomWidth: 1,
+    borderColor: "#ddd",
+  },
+  modalText: {
+    fontSize: 16,
+    textAlign: "center",
     color: "#333",
   },
-  sortText: {
-    color: "#77BBA2",
-    fontWeight: "bold",
-    textAlign: "center",
+  deliveredButton: {
+    backgroundColor: "#77BBA2",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: "center",
     marginTop: 10,
   },
-  modalActions: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 20,
+  deliveredButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    marginHorizontal: 5,
+    borderRadius: 8,
+    alignItems: "center",
+    backgroundColor: "#eee",
+  },
+
+  activeTabButton: {
+    backgroundColor: "#77BBA2",
+  },
+
+  tabButtonText: {
+    fontWeight: "bold",
+    color: "#333",
+  },
+
+  activeTabButtonText: {
+    color: "#fff",
+  },
+  undoButton: {
+    backgroundColor: "#dc3545", // لون أحمر
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 10,
+  },
+
+  undoButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });
 

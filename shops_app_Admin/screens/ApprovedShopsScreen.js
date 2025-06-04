@@ -2,8 +2,9 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, Image } from 'react-native';
 import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
-import { API_BASE_URL } from "../Backend/config";
-
+import { API_BASE_URL } from "../config";
+import { SELLER_API_BASE_URL } from "../seller-api";
+ 
 const ApprovedShopsScreen = () => {
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +38,7 @@ const ApprovedShopsScreen = () => {
 
  const renderShop = ({ item }) => {
   const logoUri = item.logo
-    ? `${API_BASE_URL}${item.logo.startsWith("/") ? "" : "/"}${item.logo}`
+    ? `${SELLER_API_BASE_URL}${item.logo.startsWith("/") ? "" : "/"}${item.logo}`
     : null;
 
   return (
@@ -45,7 +46,7 @@ const ApprovedShopsScreen = () => {
       <Image
   source={
     item.logo
-      ? { uri: `${API_BASE_URL}${item.logo.startsWith("/") ? "" : "/"}${item.logo}` }
+      ? { uri: `${SELLER_API_BASE_URL}${item.logo.startsWith("/") ? "" : "/"}${item.logo}` }
       : require("../assets/img/default_Profile__picture.png")
   }
   style={styles.logo}
@@ -57,9 +58,15 @@ const ApprovedShopsScreen = () => {
         <Text>Email: {item.email}</Text>
         <Text>Phone: {item.phoneNumber}</Text>
         <Text>Location: {item.location}</Text>
-        <Text style={styles.removeButton} onPress={() => removeApproval(item._id)}>
-          🔙 Remove
-        </Text>
+        <View style={styles.removeButtonContainer}>
+  <Text
+    style={styles.removeButtonText}
+    onPress={() => removeApproval(item._id)}
+  >
+    Remove
+  </Text>
+</View>
+
       </View>
     </View>
   );
@@ -111,6 +118,22 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 5,
   },
+  removeButtonContainer: {
+  backgroundColor: "#dc3545", 
+  paddingVertical: 8,
+  paddingHorizontal: 15,
+  borderRadius: 8,
+  alignItems: "center",
+  marginTop: 10,
+  alignSelf: "flex-start", 
+},
+
+removeButtonText: {
+  color: "#fff",
+  fontWeight: "bold",
+  fontSize: 14,
+},
+
 });
 
 export default ApprovedShopsScreen;
