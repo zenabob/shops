@@ -9,7 +9,8 @@ const fs = require("fs");
 const axios = require("axios");
 const Order = require("../models/Order");
 const Notification = require("../models/Notification");
-
+const bcrypt = require("bcrypt");
+const saltRounds = 10;
 
 const app = express();
 app.use(cors());
@@ -142,7 +143,6 @@ app.post("/create-account", async (req, res) => {
       confirmPassword,
       location,
       phoneNumber,
-      
     } = req.body;
 
     if (
@@ -167,15 +167,19 @@ app.post("/create-account", async (req, res) => {
         .json({ error: { confirmPassword: "Passwords do not match" } });
     }
 
+    // ✅ تشفير كلمة السر هنا
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // ✅ إنشاء المستخدم باستخدام كلمة السر المشفّرة
     const newUser = new User({
-  shopName,
-  fullName,
-  email,
-  password,
-  location,
-  phoneNumber,
-  status: "pending",
-});
+      shopName,
+      fullName,
+      email,
+      password: hashedPassword,
+      location,
+      phoneNumber,
+      status: "pending",
+    });
 
     await newUser.save();
 
@@ -205,13 +209,11 @@ app.post("/loginSeller", async (req, res) => {
         .json({ field: "email", message: "The email doesn't exist" });
     }
 
-    if (user.password !== password) {
-      return res
-        .status(401)
-        .json({ field: "password", message: "Incorrect password" });
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
+    if (!isPasswordMatch) {
+      return res.status(400).json({ message: "Incorrect password" });
     }
 
-    // ✅ تحقق من الحالة قبل تسجيل الدخول
     if (user.status !== "approved") {
       return res.status(403).json({
         message: "Your account is pending approval by the admin.",
@@ -250,7 +252,8 @@ app.post("/reset-password", async (req, res) => {
         .status(400)
         .json({ error: { confirmPassword: "Passwords do not match" } });
 
-    user.password = password;
+    user.password = await bcrypt.hash(password, saltRounds);
+
     await user.save();
 
     res.json({ message: "Password reset successful" });

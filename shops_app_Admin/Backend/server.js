@@ -9,7 +9,8 @@ const axios = require("axios");
 const app = express();
 const { NGROK_URL } = require("./ngrok-url");
 const API_BASE_URL = `${NGROK_URL}/shops_app_buyers`;
-
+const bcrypt = require("bcrypt");
+const saltRounds = 10;
 app.use(cors());
 app.use(express.json());
 
@@ -85,10 +86,10 @@ app.post("/loginAdmin", async (req, res) => {
       return res.status(401).json({ field: "email", message: "Email not found" });
     }
 
-    if (admin.password !== password) {
-      return res.status(401).json({ field: "password", message: "Incorrect password" });
+    const isPasswordMatch = await bcrypt.compare(password, admin.password);
+    if (!isPasswordMatch) {
+      return res.status(400).json({ message: "Incorrect password" });
     }
-
     res.json({
       userId: admin._id,
     });
@@ -321,8 +322,9 @@ app.post("/admin/create", async (req, res) => {
     if (existing) {
       return res.status(409).json({ message: "Admin already exists" });
     }
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    const newAdmin = new Admin({ email, password });
+    const newAdmin = new Admin({ email, password: hashedPassword });
     await newAdmin.save();
 
     res.status(201).json({ message: "Admin created successfully" });

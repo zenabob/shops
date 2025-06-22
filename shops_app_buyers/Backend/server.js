@@ -10,7 +10,8 @@ const { NGROK_URL } = require("./ngrok-url");
 const SELLER_API_BASE_URL = `${NGROK_URL}/shops_app_sellers`;
 const API_BASE_URL = `${NGROK_URL}/shops_app_buyers`;
 const nodemailer = require("nodemailer");
-
+const bcrypt = require("bcrypt");
+const saltRounds = 10;
 // Middleware
 app.use(express.json());
 app.use(cors());
@@ -156,9 +157,10 @@ app.post("/login", async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "Email not found." });
 
-    if (user.password !== password)
-      return res.status(400).json({ message: "Incorrect password." });
-
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
+    if (!isPasswordMatch) {
+      return res.status(400).json({ message: "Incorrect password" });
+    }
     res.status(200).json({
       message: "Login successful!",
       user: {
@@ -189,7 +191,7 @@ app.post("/reset-password", async (req, res) => {
     if (password !== confirmPassword)
       return res.status(400).json({ message: "Passwords do not match" });
 
-    user.password = password;
+    user.password = await bcrypt.hash(password, saltRounds);
     await user.save();
 
     res.status(200).json({ message: "Password updated successfully" });
@@ -272,11 +274,11 @@ app.post("/UserAccount", async (req, res) => {
         .status(400)
         .json({ error: { email: "Email already in use." } });
     }
-
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
     const newUser = new User({
       fullName,
       email,
-      password,
+      password: hashedPassword,
       location,
       age: Number(age),
       PhoneNumber: Number(PhoneNumber),

@@ -29,8 +29,17 @@ const Offer = ({ userId, navigation }) => {
  const [durationUnit, setDurationUnit] = useState("hours"); // default
 
   useEffect(() => {
-    if (userId) fetchAllProducts();
-  }, [userId]);
+  const loadUserId = async () => {
+    const id = await AsyncStorage.getItem("userId");
+    if (id) {
+      fetchAllProducts(id);
+    } else {
+      console.warn("⚠️ No userId found in storage.");
+    }
+  };
+  loadUserId();
+}, []);
+
   useEffect(() => {
     const interval = setInterval(() => {
       fetchAllProducts(); 

@@ -27,6 +27,7 @@
     "@react-navigation/native-stack": "^7.3.10",
     "@react-navigation/stack": "^7.1.2",
     "axios": "^1.8.4",
+    "bcrypt": "^6.0.0",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
