@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  Image,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -18,7 +17,7 @@ import {
   Animated,
   Easing,
 } from "react-native";
-
+import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -1017,7 +1016,7 @@ const ShopProfileScreen = () => {
         <View style={styles.background}>
           <View style={styles.container}>
             <TouchableOpacity onPress={() => pickImage("cover")}>
-              <Image
+              <ExpoImage
                 source={
                   shopData.cover
                     ? { uri: `${API_BASE_URL}${shopData.cover}` }
@@ -1027,7 +1026,7 @@ const ShopProfileScreen = () => {
               />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => pickImage("logo")}>
-              <Image
+              <ExpoImage
                 source={
                   shopData.logo
                     ? { uri: `${API_BASE_URL}${shopData.logo}` }
@@ -1040,7 +1039,7 @@ const ShopProfileScreen = () => {
               onPress={() => navigation.openDrawer()}
               style={{ left: 160, zIndex: 100 }}
             >
-              <Image
+              <ExpoImage
                 source={MENU_ICON}
                 style={{
                   position: "absolute",
@@ -1063,7 +1062,7 @@ const ShopProfileScreen = () => {
                   setEditing(true);
                 }}
               >
-                <Image
+                <ExpoImage
                   source={require("../assets/img/Edit.png")}
                   style={styles.editIcon}
                   resizeMode="contain"
@@ -1215,7 +1214,7 @@ const ShopProfileScreen = () => {
                           <TouchableOpacity
                             onPress={() => handleDeleteCategory(category)}
                           >
-                            <Image
+                            <ExpoImage
                               source={DELETE_ICON}
                               style={styles.deleteIcon}
                             />
@@ -1242,7 +1241,7 @@ const ShopProfileScreen = () => {
                                     handleEditProduct(product, category)
                                   }
                                 >
-                                  <Image
+                                  <ExpoImage
                                     source={require("../assets/img/Edit.png")}
                                     style={styles.iconSmallEdit}
                                   />
@@ -1252,14 +1251,14 @@ const ShopProfileScreen = () => {
                                     handleDeleteProduct(product._id, category)
                                   }
                                 >
-                                  <Image
+                                  <ExpoImage
                                     source={require("../assets/img/delete.png")}
                                     style={styles.iconSmall}
                                   />
                                 </TouchableOpacity>
                               </View>
 
-                              <Image
+                              <ExpoImage
   source={{
     uri: product.MainImage?.startsWith("http")
       ? product.MainImage

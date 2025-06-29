@@ -26,9 +26,25 @@ const AddNewAdmin = () => {
   const handleSubmit = async () => {
     let tempErrors = {};
 
-    if (!form.email.trim()) tempErrors.email = "Email is required";
-    if (!form.password.trim()) tempErrors.password = "Password is required";
-    if (form.password !== form.confirmPassword) tempErrors.confirmPassword = "Passwords do not match";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{6,14}$/;
+
+if (!form.email.trim()) {
+  tempErrors.email = "Email is required";
+} else if (!emailRegex.test(form.email)) {
+  tempErrors.email = "Invalid email format";
+}
+
+if (!form.password.trim()) {
+  tempErrors.password = "Password is required";
+} else if (!passwordRegex.test(form.password)) {
+  tempErrors.password = "Password must be 6-14 characters, include upper/lowercase letters, a number, and a symbol";
+}
+
+if (form.password !== form.confirmPassword) {
+  tempErrors.confirmPassword = "Passwords do not match";
+}
+
 
     if (Object.keys(tempErrors).length > 0) {
       setErrors(tempErrors);

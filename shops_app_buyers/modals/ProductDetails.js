@@ -11,6 +11,7 @@ import {
 import axios from "axios";
 import {API_BASE_URL} from "../config";
 import { SELLER_API_BASE_URL } from "../seller-api";
+import { Image as ExpoImage } from 'expo-image';
 
 const ProductDetails = ({
   visible,
@@ -150,7 +151,7 @@ const ProductDetails = ({
                     key={index}
                     onPress={() => setSelectedMainImage(img)}
                   >
-<Image
+<ExpoImage
   source={{
     uri: img?.startsWith("http")
       ? img
@@ -164,7 +165,7 @@ const ProductDetails = ({
             )}
           <View style={styles.detailContent}>
             {selectedMainImage && (
-              <Image
+              <ExpoImage
   source={{
     uri: selectedMainImage?.startsWith("http")
       ? selectedMainImage
@@ -217,7 +218,7 @@ const ProductDetails = ({
                     setLocalSelectedSize(null);
                   }}
                 >
-                  <Image
+                  <ExpoImage
   source={{
     uri: c.previewImage?.startsWith("http")
       ? c.previewImage
@@ -330,7 +331,7 @@ const ProductDetails = ({
               </TouchableOpacity>
 
               <TouchableOpacity onPress={toggleFavorite}>
-                <Image
+                <ExpoImage
                   source={
                     isFavorite
                       ? require("../assets/img/BlackFullHeart.png")

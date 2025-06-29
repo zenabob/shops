@@ -14,6 +14,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import {API_BASE_URL} from "../config";
+import { Image as ExpoImage } from 'expo-image';
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -161,7 +162,7 @@ const Offer = ({ userId, navigation }) => {
           onPress={() => navigation.navigate("MainScreen")}
           style={styles.backButton}
         >
-          <Image
+          <ExpoImage
             source={require("../assets/img/BlackArrow.png")}
             style={styles.backIcon}
           />
@@ -193,7 +194,7 @@ const Offer = ({ userId, navigation }) => {
               onPress={() => toggleProductSelection(item._id)}
               activeOpacity={0.8}
             >
-             <Image
+             <ExpoImage
   source={{
     uri: (item.MainImage || item.image)?.startsWith("http")
       ? item.MainImage || item.image

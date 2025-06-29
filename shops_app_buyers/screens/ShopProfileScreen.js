@@ -16,6 +16,7 @@ import ProductDetails from "../modals/ProductDetails";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {API_BASE_URL} from "../config";
 import { SELLER_API_BASE_URL } from "../seller-api";
+import { Image as ExpoImage } from 'expo-image';
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -137,7 +138,7 @@ useEffect(() => {
         />
       </TouchableOpacity>
       <ScrollView contentContainerStyle={styles.content}>
-<Image
+<ExpoImage
   source={{
     uri: shopData.cover?.startsWith("http")
       ? shopData.cover
@@ -147,7 +148,7 @@ useEffect(() => {
 />
 
         <View style={styles.logoContainer}>
-<Image
+<ExpoImage
   source={{
     uri: shopData.logo?.startsWith("http")
       ? shopData.logo
@@ -182,7 +183,7 @@ useEffect(() => {
                       setShowDetailModal(true);
                     }}
                   >
-                    <Image
+                    <ExpoImage
   source={{
     uri: product.MainImage?.startsWith("http")
       ? product.MainImage
@@ -212,7 +213,7 @@ useEffect(() => {
                       <Text style={styles.price}>{product?.price} ILS</Text>
                     )}
                     <TouchableOpacity style={styles.cartIconWrapper}>
-                      <Image
+                      <ExpoImage
                         source={require("../assets/img/cart_plus.png")}
                         style={styles.cartIcon}
                       />
@@ -241,7 +242,7 @@ useEffect(() => {
                       setShowDetailModal(true);
                     }}
                   >
-                    <Image
+                    <ExpoImage
   source={{
     uri: product.MainImage?.trim().startsWith("http")
       ? product.MainImage.trim()
@@ -288,7 +289,7 @@ useEffect(() => {
                         setShowDetailModal(true);
                       }}
                     >
-                      <Image
+                      <ExpoImage
                         source={require("../assets/img/cart_plus.png")}
                         style={styles.cartIcon}
                       />

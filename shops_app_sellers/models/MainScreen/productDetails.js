@@ -11,6 +11,7 @@ import {
 import EditColorModal from "../MainScreen/EditColorModal";
 import AddColorModal from "../MainScreen/AddColorModal";
 import { API_BASE_URL } from "../../config";
+import { Image as ExpoImage } from 'expo-image';
 
 const ProductDetails = ({
   visible,
@@ -90,7 +91,7 @@ const ProductDetails = ({
                         <TouchableOpacity
                           onPress={() => setSelectedMainImage(img)}
                         >
-                          <Image
+                          <ExpoImage
                             source={{
                               uri: img?.startsWith("http")
                                 ? img
@@ -141,7 +142,7 @@ const ProductDetails = ({
                   }
                 }}
               >
-                <Image
+                <ExpoImage
                   source={{
                     uri: selectedMainImage?.startsWith("http")
                       ? selectedMainImage
@@ -212,7 +213,7 @@ const ProductDetails = ({
                     }}
                     style={{ marginLeft: 10 }}
                   >
-                    <Image
+                    <ExpoImage
                       source={require("../../assets/img/Edit.png")}
                       style={{ width: 15, height: 15 }}
                     />
@@ -244,7 +245,7 @@ const ProductDetails = ({
                         }));
                       }}
                     >
-                      <Image
+                      <ExpoImage
                         source={{
                           uri: c.previewImage?.startsWith("http")
                             ? c.previewImage

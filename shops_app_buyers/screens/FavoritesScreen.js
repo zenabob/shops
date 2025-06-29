@@ -14,6 +14,7 @@ import { useNavigation } from "@react-navigation/native";
 import ProductDetails from "../modals/ProductDetails";
 import { API_BASE_URL } from "../config";
 import { SELLER_API_BASE_URL } from "../seller-api";
+import { Image as ExpoImage } from 'expo-image';
 
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 40) / 2;
@@ -124,7 +125,7 @@ const FavoritesScreen = ({ route }) => {
         key={`${item.productId}_${index}`}
         onPress={() => openProductDetails(item)}
       >
-        <Image
+        <ExpoImage
           source={{
             uri: item.image?.startsWith("http")
               ? item.image

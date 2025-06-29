@@ -73,6 +73,7 @@ const ResultOfSearch = ({ route, navigation }) => {
         const exactCategoryProducts = data.filter(
           (p) => p.categoryName?.toLowerCase() === categoryNameLower
         );
+        
         setProducts(exactCategoryProducts);
         return;
       }
@@ -144,7 +145,17 @@ const ResultOfSearch = ({ route, navigation }) => {
         });
       }
 
-      setProducts(filtered);
+      // ✅ إزالة المنتجات التي كل المقاسات منها Sold Out
+const availableProducts = filtered.filter((product) => {
+  if (!product.colors || product.colors.length === 0) return false;
+
+  return product.colors.some((color) =>
+    color.sizes?.some((s) => s.stock > 0)
+  );
+});
+
+setProducts(availableProducts);
+
     } catch (err) {
       console.error("❌ Error fetching search result products", err);
     }

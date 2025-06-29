@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     width: 500,
     height: 400,
     marginBottom: 40,
-    marginTop:-40,
+    marginTop:-17,
   },
   title: {
     fontSize: 40,

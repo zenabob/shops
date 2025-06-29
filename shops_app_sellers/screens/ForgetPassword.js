@@ -135,7 +135,7 @@ const ResetPasswordScreen = () => {
         {/* Confirm New Password */}
         <Text style={styles.label}>Confirm New Password</Text>
         <TextInput 
-          style={[styles.input, errors.confirmPassword && styles.inputError]}
+          style={[styles.input,errors.confirmPassword && styles.inputError]}
           placeholder="Confirm your password"
           placeholderTextColor="#A9A9A9"
           secureTextEntry
