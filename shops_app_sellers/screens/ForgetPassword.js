@@ -33,7 +33,7 @@ const ResetPasswordScreen = () => {
     }
   };
 
-  // ✅ Validate password (6-14 chars, uppercase, lowercase, number, symbol)
+  // Validate password (6-14 chars, uppercase, lowercase, number, symbol)
   const isValidPassword = (password) => {
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&\/])[A-Za-z\d@$!%*?&\/]{6,14}$/;
     return passwordRegex.test(password);

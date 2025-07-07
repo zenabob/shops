@@ -1,4 +1,3 @@
-
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
@@ -69,11 +68,10 @@ const shopSchema = new mongoose.Schema({
     },
   ],
   status: {
-  type: String,
-  enum: ["approved", "pending"],
-  default: "pending", 
-}
-
+    type: String,
+    enum: ["approved", "pending"],
+    default: "pending",
+  },
 });
 
 const User = mongoose.model("Shops", shopSchema);
@@ -94,14 +92,6 @@ const storage = multer.diskStorage({
     ),
 });
 const upload = multer({ storage });
-
-// ======================
-// Helper
-// ======================
-
-// ======================
-// Routes
-// ======================
 
 // Register
 app.put("/profile/:userId/category/:oldName", async (req, res) => {
@@ -135,6 +125,7 @@ app.put("/profile/:userId/category/:oldName", async (req, res) => {
 
 app.post("/create-account", async (req, res) => {
   try {
+    // Destructure data from request body
     const {
       shopName,
       fullName,
@@ -145,32 +136,38 @@ app.post("/create-account", async (req, res) => {
       phoneNumber,
     } = req.body;
 
+    // Check if all required fields are present
     if (
       !shopName ||
       !fullName ||
       !email ||
       !password ||
+      !confirmPassword ||
       !location ||
       !phoneNumber
     ) {
       return res.status(400).json({ error: "All fields are required." });
     }
 
+    // Check if email is already used
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ error: { email: "Email already in use" } });
+      return res.status(400).json({
+        error: { email: "Email already in use" },
+      });
     }
 
+    // Validate if passwords match
     if (password !== confirmPassword) {
-      return res
-        .status(400)
-        .json({ error: { confirmPassword: "Passwords do not match" } });
+      return res.status(400).json({
+        error: { confirmPassword: "Passwords do not match" },
+      });
     }
 
-    // ✅ تشفير كلمة السر هنا
+    // Hash the password using bcrypt
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // ✅ إنشاء المستخدم باستخدام كلمة السر المشفّرة
+    // Create a new user with default status "pending"
     const newUser = new User({
       shopName,
       fullName,
@@ -178,14 +175,17 @@ app.post("/create-account", async (req, res) => {
       password: hashedPassword,
       location,
       phoneNumber,
-      status: "pending",
+      status: "pending", // Will be approved later by admin
     });
 
+    // Save user to the database
     await newUser.save();
 
+    // Respond with success
     res.status(201).json({ message: "Account created successfully!" });
   } catch (err) {
-    console.error(err);
+    // Catch and log unexpected server errors
+    console.error("Error creating account:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -231,7 +231,6 @@ app.post("/loginSeller", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
-
 
 // Reset password
 app.post("/reset-password", async (req, res) => {
@@ -317,7 +316,8 @@ app.post(
 );
 
 // Upload cover
-app.post("/profile/:userId/upload-cover",
+app.post(
+  "/profile/:userId/upload-cover",
   upload.single("image"),
   async (req, res) => {
     try {
@@ -418,15 +418,8 @@ app.post(
   async (req, res) => {
     try {
       const { category } = req.params;
-      const {
-        title,
-        price,
-        genderTarget,
-        images,
-        colors,
-        sizes,
-        offer,
-      } = req.body;
+      const { title, price, genderTarget, images, colors, sizes, offer } =
+        req.body;
 
       const user = await User.findById(req.params.userId);
       if (!user) return res.status(404).json({ message: "No user found" });
@@ -435,21 +428,18 @@ app.post(
       if (!categoryObj)
         return res.status(404).json({ message: "Category not found" });
 
-      const MainImage = req.file
-        ? `/uploads/${req.file.filename}`
-        : "";
+      const MainImage = req.file ? `/uploads/${req.file.filename}` : "";
 
       const parsedImages = images ? JSON.parse(images) : [];
       const parsedColors = colors ? JSON.parse(colors) : [];
       const parsedSizes = sizes ? JSON.parse(sizes) : [];
       let parsedOffer = null;
-if (offer) {
-  const temp = JSON.parse(offer);
-  if (temp.discountPercentage && temp.expiresAt) {
-    parsedOffer = temp;
-  }
-}
-
+      if (offer) {
+        const temp = JSON.parse(offer);
+        if (temp.discountPercentage && temp.expiresAt) {
+          parsedOffer = temp;
+        }
+      }
 
       const newProduct = {
         title,
@@ -744,7 +734,6 @@ app.get("/public/shop/:shopId/product/:productId", async (req, res) => {
   }
 });
 
-
 app.get("/public/shop/:shopId/media", async (req, res) => {
   try {
     const shop = await User.findById(req.params.shopId);
@@ -795,7 +784,7 @@ app.get("/public/all-products", async (req, res) => {
           ) {
             offer = product.offer;
           }
-          
+
           allProducts.push({
             _id: product._id,
             title: product.title,
@@ -807,7 +796,6 @@ app.get("/public/all-products", async (req, res) => {
             colors: product.colors || [],
             offer, // ← فقط إذا العرض لا يزال ساري
           });
-          
         }
       }
     }
@@ -1142,11 +1130,9 @@ app.put("/orders/:orderId/status", async (req, res) => {
       updateData.deliveredToAdminAt = new Date(); // ✅ Set the delivery date
     }
 
-    const order = await Order.findOneAndUpdate(
-      { orderId },
-      updateData,
-      { new: true }
-    );
+    const order = await Order.findOneAndUpdate({ orderId }, updateData, {
+      new: true,
+    });
 
     if (!order) return res.status(404).json({ message: "Order not found" });
 
@@ -1156,7 +1142,6 @@ app.put("/orders/:orderId/status", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
 
 app.post("/notify-soldout", async (req, res) => {
   try {
@@ -1194,7 +1179,7 @@ app.post("/notify-soldout", async (req, res) => {
       productId,
       color,
       size,
-      productTitle, // 👈 أضف هذا الحقل في سكيمة Notification أيضًا
+      productTitle,
     });
 
     await notification.save();
@@ -1216,7 +1201,7 @@ app.get("/notifications/:shopId", async (req, res) => {
     }
 
     const notifications = await Notification.find(filter)
-      .populate("productId", "title") 
+      .populate("productId", "title")
       .sort({ createdAt: -1 });
 
     res.status(200).json(notifications);
@@ -1246,7 +1231,7 @@ app.put("/notifications/:notificationId/read", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-app.put('/orders/:orderId/status', async (req, res) => {
+app.put("/orders/:orderId/status", async (req, res) => {
   const { orderId } = req.params;
   const { status } = req.body;
 
@@ -1273,15 +1258,22 @@ app.put('/orders/:orderId/status', async (req, res) => {
 app.get("/statistics/items-sold", async (req, res) => {
   try {
     const { shopId, range = "month" } = req.query;
-    const matchStage = shopId ? { shopId: new mongoose.Types.ObjectId(shopId) } : {};
-    const groupByFormat = range === "day" ? "%Y-%m-%d" : "%Y-%m";
+    const matchStage = shopId
+      ? { shopId: new mongoose.Types.ObjectId(shopId) }
+      : {};
+    const groupByFormat = range === "day" ? "%Y-%m-%dT%H:00" : "%Y-%m-%d";
+
 
     const result = await Order.aggregate([
       { $match: matchStage },
       { $unwind: "$products" },
       {
         $group: {
-          _id: { date: { $dateToString: { format: groupByFormat, date: "$createdAt" } } },
+          _id: {
+            date: {
+              $dateToString: { format: groupByFormat, date: "$createdAt" },
+            },
+          },
           totalQuantity: { $sum: "$products.quantity" },
         },
       },
@@ -1295,36 +1287,13 @@ app.get("/statistics/items-sold", async (req, res) => {
   }
 });
 
-// 💰 Turnover (revenue) by month/day
-app.get("/statistics/turnover", async (req, res) => {
-  try {
-    const { shopId, range = "month" } = req.query;
-    const matchStage = shopId ? { shopId: new mongoose.Types.ObjectId(shopId) } : {};
-    const groupByFormat = range === "day" ? "%Y-%m-%d" : "%Y-%m";
-
-    const result = await Order.aggregate([
-      { $match: matchStage },
-      {
-        $group: {
-          _id: { date: { $dateToString: { format: groupByFormat, date: "$createdAt" } } },
-          totalRevenue: { $sum: "$totalPrice" },
-        },
-      },
-      { $sort: { "_id.date": 1 } },
-    ]);
-
-    res.json(result);
-  } catch (err) {
-    console.error("Error getting turnover stats:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// 🗺️ Items sold by region (pie)
+// Items sold by region (pie)
 app.get("/statistics/sales-by-region", async (req, res) => {
   try {
     const { shopId } = req.query;
-    const matchStage = shopId ? { shopId: new mongoose.Types.ObjectId(shopId) } : {};
+    const matchStage = shopId
+      ? { shopId: new mongoose.Types.ObjectId(shopId) }
+      : {};
 
     const result = await Order.aggregate([
       { $match: matchStage },
@@ -1345,11 +1314,13 @@ app.get("/statistics/sales-by-region", async (req, res) => {
   }
 });
 
-// 📍 Purchases by region (pie - count of orders)
+// Purchases by region (pie - count of orders)
 app.get("/statistics/purchases-by-region", async (req, res) => {
   try {
     const { shopId } = req.query;
-    const matchStage = shopId ? { shopId: new mongoose.Types.ObjectId(shopId) } : {};
+    const matchStage = shopId
+      ? { shopId: new mongoose.Types.ObjectId(shopId) }
+      : {};
 
     const result = await Order.aggregate([
       { $match: matchStage },
@@ -1369,31 +1340,13 @@ app.get("/statistics/purchases-by-region", async (req, res) => {
   }
 });
 
-// 💼 Total turnover by shop (admin-wide)
-app.get("/statistics/total-turnover-by-shop", async (req, res) => {
-  try {
-    const result = await Order.aggregate([
-      {
-        $group: {
-          _id: "$shopId",
-          totalRevenue: { $sum: "$totalPrice" },
-        },
-      },
-      { $sort: { totalRevenue: -1 } },
-    ]);
-
-    res.json(result);
-  } catch (err) {
-    console.error("Error getting total turnover by shop:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// 🔝 Top sold products by quantity (per shop)
+// Top sold products by quantity (per shop)
 app.get("/statistics/top-products", async (req, res) => {
   try {
     const { shopId } = req.query;
-    const matchStage = shopId ? { shopId: new mongoose.Types.ObjectId(shopId) } : {};
+    const matchStage = shopId
+      ? { shopId: new mongoose.Types.ObjectId(shopId) }
+      : {};
 
     const result = await Order.aggregate([
       { $match: matchStage },
@@ -1422,4 +1375,3 @@ const PORT = process.env.PORT || 5002;
 app.listen(PORT, "0.0.0.0", () =>
   console.log(`✅ Server running on port ${PORT} (ready for ngrok)`)
 );
-

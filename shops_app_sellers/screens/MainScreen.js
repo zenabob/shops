@@ -17,9 +17,8 @@ import {
   Animated,
   Easing,
 } from "react-native";
-import { Image as ExpoImage } from 'expo-image';
+import { Image as ExpoImage } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import * as ImageManipulator from "expo-image-manipulator";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { useFocusEffect } from "@react-navigation/native";
@@ -28,7 +27,7 @@ import { useCallback } from "react";
 import axios from "axios";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import EditShopInfoModal from "../models/MainScreen/EditShopInfoModal.js"; // Adjust path as needed
+import EditShopInfoModal from "../models/MainScreen/EditShopInfoModal.js";
 import AddProduct from "../models/MainScreen/AddProduct";
 import ProductDetails from "../models/MainScreen/productDetails.js";
 import AddColorModal from "../models/MainScreen/AddColorModal";
@@ -58,72 +57,141 @@ const CATEGORY_OPTIONS = [
 ];
 
 const ShopProfileScreen = () => {
-  const [errors, setErrors] = useState({ title: "", price: "", image: "" });
-  const { showActionSheetWithOptions } = useActionSheet();
-  const [showCategoryInput, setShowCategoryInput] = useState(false);
-  const [categories, setCategories] = useState([]);
-  const [newCategory, setNewCategory] = useState("");
-  const [productsByCategory, setProductsByCategory] = useState({});
-  const [selectedProductDetails, setSelectedProductDetails] = useState(null);
-  const [selectedColorName, setSelectedColorName] = useState("");
-  const [editingCategory, setEditingCategory] = useState(null); // category being edited
-  const [editedCategoryName, setEditedCategoryName] = useState(""); // new value
-  const [selectedMainImage, setSelectedMainImage] = useState("");
-  const [showAddColorModal, setShowAddColorModal] = useState(false);
-  const [selectedSize, setSelectedSize] = useState(null);
-  const [showCategorySelector, setShowCategorySelector] = useState(false);
-  const [categoryError, setCategoryError] = useState("");
+  // Stores form validation errors when adding a product (title, price, image)
+const [errors, setErrors] = useState({ title: "", price: "", image: "" });
 
-  const [shopData, setShopData] = useState({
-    name: "",
-    location: "",
-    logo: null,
-    cover: null,
-  });
-  const [isSaving, setIsSaving] = useState(false);
-  const [draftShopData, setDraftShopData] = useState(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [editErrors, setEditErrors] = useState({ name: "", location: "" });
-  const [editing, setEditing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [showProductModal, setShowProductModal] = useState(false);
-  const [selectedColorImages, setSelectedColorImages] = useState([]);
-  const [colorModalVisible, setColorModalVisible] = useState(false);
-  const [newSize, setNewSize] = useState("");
-  const [newStock, setNewStock] = useState("");
-  const [modalOpacity] = useState(new Animated.Value(0));
-  const [colorErrors, setColorErrors] = useState({
-    name: "",
-    previewImage: "",
-    images: "",
-    sizes: "",
-    newSize: "",
-    newStock: "",
-  });
-  const [newProduct, setNewProduct] = useState({
-    title: "",
-    price: "",
-    image: null,
-  });
-  const [colorForm, setColorForm] = useState({
-    name: "",
-    previewImage: null,
-    images: [],
-    sizes: [{ size: "", stock: "" }],
-  });
-  const [colorFormErrors, setColorFormErrors] = useState({
-    name: "",
-    previewImage: "",
-    sizes: "",
-  });
-  const [newColor, setNewColor] = useState({
-    name: "",
-    previewImage: null,
-    images: [],
-    sizes: [],
-  });
-  const [userId, setUserId] = useState(null);
-  const navigation = useNavigation();
+// Provides access to ActionSheet for options like image selection
+const { showActionSheetWithOptions } = useActionSheet();
+
+// Controls whether the input for creating a new category is visible
+const [showCategoryInput, setShowCategoryInput] = useState(false);
+
+// Stores all categories fetched from the backend
+const [categories, setCategories] = useState([]);
+
+// Stores the value entered for a new category name
+const [newCategory, setNewCategory] = useState("");
+
+// Stores products grouped by their category
+const [productsByCategory, setProductsByCategory] = useState({});
+
+// Holds the details of the currently selected product (for view/edit)
+const [selectedProductDetails, setSelectedProductDetails] = useState(null);
+
+// Stores the name of the currently selected color of a product
+const [selectedColorName, setSelectedColorName] = useState("");
+
+// Stores the category currently being edited
+const [editingCategory, setEditingCategory] = useState(null);
+
+// Stores the new name entered while editing a category
+const [editedCategoryName, setEditedCategoryName] = useState("");
+
+// Stores the main image selected for display in the product modal
+const [selectedMainImage, setSelectedMainImage] = useState("");
+
+// Controls whether the modal for adding a new color is visible
+const [showAddColorModal, setShowAddColorModal] = useState(false);
+
+// Stores the selected size of a product (e.g., S, M, L)
+const [selectedSize, setSelectedSize] = useState(null);
+
+// Controls the visibility of the category selector dropdown/modal
+const [showCategorySelector, setShowCategorySelector] = useState(false);
+
+// Stores any validation error when a category is not selected
+const [categoryError, setCategoryError] = useState("");
+
+// Stores shop details like name, location, logo, and cover image
+const [shopData, setShopData] = useState({
+  name: "",
+  location: "",
+  logo: null,
+  cover: null,
+});
+
+// Indicates whether shop data is currently being saved
+const [isSaving, setIsSaving] = useState(false);
+
+// Stores a draft version of the shop data before final save
+const [draftShopData, setDraftShopData] = useState(null);
+
+// Controls whether the product details modal is shown
+const [showDetailModal, setShowDetailModal] = useState(false);
+
+// Holds validation errors for editing shop name and location
+const [editErrors, setEditErrors] = useState({ name: "", location: "" });
+
+// Indicates whether the shop profile is currently in edit mode
+const [editing, setEditing] = useState(false);
+
+// Stores the selected category when adding or editing a product
+const [selectedCategory, setSelectedCategory] = useState(null);
+
+// Controls whether the modal for adding a new product is visible
+const [showProductModal, setShowProductModal] = useState(false);
+
+// Stores the list of images for the selected product color
+const [selectedColorImages, setSelectedColorImages] = useState([]);
+
+// Controls visibility of the color editing modal
+const [colorModalVisible, setColorModalVisible] = useState(false);
+
+// Stores the new size value entered by the user
+const [newSize, setNewSize] = useState("");
+
+// Stores the stock quantity for the new size
+const [newStock, setNewStock] = useState("");
+
+// Controls the opacity animation for modals
+const [modalOpacity] = useState(new Animated.Value(0));
+
+// Stores form validation errors when adding or editing a color
+const [colorErrors, setColorErrors] = useState({
+  name: "",
+  previewImage: "",
+  images: "",
+  sizes: "",
+  newSize: "",
+  newStock: "",
+});
+
+// Stores values entered when adding a new product
+const [newProduct, setNewProduct] = useState({
+  title: "",
+  price: "",
+  image: null,
+});
+
+// Form state for adding or editing a color (name, preview, gallery, sizes)
+const [colorForm, setColorForm] = useState({
+  name: "",
+  previewImage: null,
+  images: [],
+  sizes: [{ size: "", stock: "" }],
+});
+
+// Holds validation errors for the colorForm
+const [colorFormErrors, setColorFormErrors] = useState({
+  name: "",
+  previewImage: "",
+  sizes: "",
+});
+
+// Stores a new color object to be added to a product
+const [newColor, setNewColor] = useState({
+  name: "",
+  previewImage: null,
+  images: [],
+  sizes: [],
+});
+
+// Stores the user/shop owner ID, used for API requests
+const [userId, setUserId] = useState(null);
+
+// Enables screen navigation inside the app
+const navigation = useNavigation();
+
   // Load userId once
   useEffect(() => {
     const loadUserId = async () => {
@@ -149,6 +217,7 @@ const ShopProfileScreen = () => {
       }
     }, [userId])
   );
+
   useEffect(() => {
     if (!userId) return;
 
@@ -206,17 +275,7 @@ const ShopProfileScreen = () => {
       }
     })();
   }, []);
-  const compressImage = async (uri) => {
-    const result = await ImageManipulator.manipulateAsync(
-      uri,
-      [{ resize: { width: 800 } }], // Resize image (adjust width as needed)
-      {
-        compress: 0.6, // 0 to 1 (lower means more compression)
-        format: ImageManipulator.SaveFormat.JPEG,
-      }
-    );
-    return result.uri;
-  };
+ 
   const uploadColorImage = async (uri) => {
     const formData = new FormData();
     formData.append("image", {
@@ -233,7 +292,7 @@ const ShopProfileScreen = () => {
           headers: { "Content-Type": "multipart/form-data" },
         }
       );
-      return res.data.url; // ✅ must be a valid image URL
+      return res.data.url; // must be a valid image URL
     } catch (err) {
       console.error("❌ Error uploading image:", err);
       return null;
@@ -251,8 +310,7 @@ const ShopProfileScreen = () => {
       if (!result.canceled) {
         const uri = result.assets[0].uri;
 
-        // Upload preview image like you do with color images
-        const uploadedUrl = await uploadColorImage(uri); // ✅ Reuse your existing function
+        const uploadedUrl = await uploadColorImage(uri); // Reuse your existing function
 
         if (!uploadedUrl) {
           Alert.alert("Failed to upload preview image");
@@ -300,7 +358,7 @@ const ShopProfileScreen = () => {
       valid = false;
     }
 
-    // ✅ Check sizes array
+    // Check sizes array
     const sizes = colorForm.sizes;
     if (!sizes || sizes.length === 0) {
       errors.sizes = "At least one size is required";
@@ -396,12 +454,12 @@ const ShopProfileScreen = () => {
     let hasError = false;
     let errors = { ...colorErrors };
 
-    // 1. Check if size is empty
+    // Check if size is empty
     if (!size) {
       errors.newSize = "Size is required";
       hasError = true;
 
-      // 2. ✅ Check if size already exists (case-insensitive)
+      // Check if size already exists (case-insensitive)
     } else if (
       newColor.sizes.some((s) => s.size.trim().toUpperCase() === size)
     ) {
@@ -409,13 +467,13 @@ const ShopProfileScreen = () => {
       hasError = true;
     }
 
-    // 3. Validate stock
+    // Validate stock
     if (!stock || isNaN(stock) || Number(stock) <= 0) {
       errors.newStock = "Enter a valid stock quantity";
       hasError = true;
     }
 
-    // 4. Optional size limit
+    // Optional size limit
     if (newColor.sizes.length >= 7) {
       errors.sizes = "You can only add up to 7 sizes";
       hasError = true;
@@ -426,7 +484,7 @@ const ShopProfileScreen = () => {
       return;
     }
 
-    // 5. Save with normalized size
+    // Save with normalized size
     const updatedSizes = [...newColor.sizes, { size, stock }];
     setNewColor((prev) => ({
       ...prev,
@@ -437,12 +495,13 @@ const ShopProfileScreen = () => {
     setNewStock("");
     setColorErrors({ ...colorErrors, newSize: "", newStock: "", sizes: "" });
   };
+
   const handleDeleteGalleryImage = async (imageUrlToDelete) => {
     try {
       const productId = selectedProductDetails?._id;
       const encodedColor = encodeURIComponent(selectedColorName);
 
-      // 1. Backend deletion
+      // Backend deletion
       await axios.delete(
         `${API_BASE_URL}/profile/${userId}/category/${selectedCategory}/product/${productId}/color/${encodedColor}/image`,
         {
@@ -450,13 +509,13 @@ const ShopProfileScreen = () => {
         }
       );
 
-      // 2. Update image list in selectedColorImages
+      // Update image list in selectedColorImages
       const updatedImages = selectedColorImages.filter(
         (img) => img !== imageUrlToDelete
       );
       setSelectedColorImages(updatedImages);
 
-      // 3. Update selectedProductDetails.colors in local state
+      // Update selectedProductDetails.colors in local state
       setSelectedProductDetails((prev) => ({
         ...prev,
         colors: prev.colors.map((c) =>
@@ -464,14 +523,14 @@ const ShopProfileScreen = () => {
         ),
       }));
 
-      // 4. Handle main image switch if needed
+      // Handle main image switch if needed
       if (selectedMainImage === imageUrlToDelete) {
         setSelectedMainImage(
           updatedImages[0] || selectedProductDetails.MainImage || ""
         );
       }
 
-      // Optional: Refresh category list
+      // Refresh category list
       await fetchCategoriesWithProducts();
     } catch (err) {
       console.error("Error deleting image from gallery:", err);
@@ -497,7 +556,7 @@ const ShopProfileScreen = () => {
         updatedColors[deletedIndex] || updatedColors[deletedIndex - 1];
     }
 
-    // ✅ Update local state
+    // Update local state
     setSelectedProductDetails((prev) => ({
       ...prev,
       colors: updatedColors,
@@ -518,7 +577,7 @@ const ShopProfileScreen = () => {
       );
     }
 
-    // ✅ Push the updated color list to backend
+    //Push the updated color list to backend
     try {
       const formData = new FormData();
       formData.append("title", selectedProductDetails.title);
@@ -600,10 +659,10 @@ const ShopProfileScreen = () => {
 
           const updated = [...selectedColorImages, newImageUri];
 
-          // 🔄 1. Update local state
+          // Update local state
           setSelectedColorImages(updated);
 
-          // 🔄 2. Update local product state
+          // Update local product state
           setSelectedProductDetails((prev) => ({
             ...prev,
             colors: prev.colors.map((c) =>
@@ -612,7 +671,7 @@ const ShopProfileScreen = () => {
           }));
 
           try {
-            // 🔄 3. Save to backend
+            // Save to backend
             const formData = new FormData();
             formData.append("title", selectedProductDetails.title);
             formData.append("price", selectedProductDetails.price);
@@ -889,6 +948,7 @@ const ShopProfileScreen = () => {
       await axios.delete(
         `${API_BASE_URL}/profile/${userId}/category/${category}/product/${productId}`
       );
+      //Update the category 
       setProductsByCategory((prev) => ({
         ...prev,
         [category]: prev[category].filter((p) => p._id !== productId),
@@ -910,7 +970,7 @@ const ShopProfileScreen = () => {
 
     setSelectedProductDetails(safeProduct);
 
-    // 🟢 Check if colors exist
+    // Check if colors exist
     if (
       safeProduct.colors.length > 0 &&
       safeProduct.colors[0].images?.length > 0
@@ -923,7 +983,7 @@ const ShopProfileScreen = () => {
         sizes: safeProduct.colors[0].sizes || [],
       }));
     } else {
-      // 🛑 No colors: show product image, hide gallery and add image button
+      // No colors: show product image, hide gallery and add image button
       setSelectedColorName("");
       setSelectedColorImages([]); // no gallery
       setSelectedMainImage(
@@ -965,7 +1025,7 @@ const ShopProfileScreen = () => {
         if (result && !result.canceled) {
           const uri = result.assets[0].uri;
 
-          // ✅ Set image and clear error
+          // Set image and clear error
           setNewProduct((prev) => ({
             ...prev,
             image: uri,
@@ -973,7 +1033,7 @@ const ShopProfileScreen = () => {
 
           setErrors((prev) => ({
             ...prev,
-            image: "", // ✅ clear the error message
+            image: "", //clear the error message
           }));
         }
       }
@@ -1259,13 +1319,13 @@ const ShopProfileScreen = () => {
                               </View>
 
                               <ExpoImage
-  source={{
-    uri: product.MainImage?.startsWith("http")
-      ? product.MainImage
-      : `${API_BASE_URL}${product.MainImage}`,
-  }}
-  style={styles.productImage}
-/>
+                                source={{
+                                  uri: product.MainImage?.startsWith("http")
+                                    ? product.MainImage
+                                    : `${API_BASE_URL}${product.MainImage}`,
+                                }}
+                                style={styles.productImage}
+                              />
 
                               <Text
                                 style={styles.productTitle}
@@ -1347,7 +1407,7 @@ const ShopProfileScreen = () => {
                 setNewProduct({ title: "", price: "", image: null });
               }}
             />
-            {/* ################ Add product ###################################*/}
+            {/* ################ Product details ###################################*/}
             <ProductDetails
               visible={showDetailModal}
               product={selectedProductDetails}

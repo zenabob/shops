@@ -14,15 +14,18 @@ import { useNavigation } from "@react-navigation/native";
 import {API_BASE_URL} from "../config";
 
 const ResetPasswordScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation(); 
+
+  // Form state: email, password, confirmPassword
   const [form, setForm] = useState({
     email: "",
     password: "",
     confirmPassword: "",
   });
 
-  const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({}); // Object to store form validation errors
+  const [loading, setLoading] = useState(false); // Loading state for submit button
+
 
   const handleInputChange = (name, value) => {
     setForm({ ...form, [name]: value });
@@ -33,33 +36,37 @@ const ResetPasswordScreen = () => {
     }
   };
 
-  // ✅ Validate password (6-14 chars, uppercase, lowercase, number, symbol)
+  // Validate password (6-14 chars, uppercase, lowercase, number, symbol)
   const isValidPassword = (password) => {
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&\/])[A-Za-z\d@$!%*?&\/]{6,14}$/;
     return passwordRegex.test(password);
   };
 
-  const validateForm = async () => {
+    const validateForm = async () => {
     let newErrors = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+    // Validate email
     if (!form.email.trim()) newErrors.email = "Email is required";
     else if (!emailRegex.test(form.email))
       newErrors.email = "Invalid email format";
 
+    // Validate password
     if (!form.password.trim()) newErrors.password = "Password is required";
     else if (!isValidPassword(form.password))
       newErrors.password =
         "Password must be 6-14 characters, include uppercase, lowercase, number, and symbol.";
 
+    // Confirm password
     if (!form.confirmPassword.trim())
       newErrors.confirmPassword = "Confirm Password is required";
     else if (form.password !== form.confirmPassword)
       newErrors.confirmPassword = "Passwords do not match";
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return Object.keys(newErrors).length === 0; // Return true if no errors
   };
+
 
   const handleSubmit = async () => {
     if (!(await validateForm())) return;

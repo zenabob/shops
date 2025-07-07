@@ -104,7 +104,6 @@ const ShopOrdersScreen = ({ route, navigation }) => {
 
     const updatedOrder = response.data.order;
 
-    // ✅ تحديث الطلب بالكامل بما فيه deliveredToAdminAt
     setOrders((prevOrders) =>
       prevOrders.map((order) =>
         order.orderId === orderId ? updatedOrder : order

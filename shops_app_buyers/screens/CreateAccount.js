@@ -13,15 +13,15 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
-  Modal, 
+  Modal,
 } from "react-native";
-import {API_BASE_URL} from "../config";
-
+import { API_BASE_URL } from "../config";
 import { useNavigation } from "@react-navigation/native";
-import { Picker } from "@react-native-picker/picker";
 
 const RegisterScreen = () => {
   const navigation = useNavigation();
+
+  // Form state to hold user input values
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -33,76 +33,67 @@ const RegisterScreen = () => {
     Gender: "",
   });
 
-  const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [genderModalVisible, setGenderModalVisible] = useState(false);
-  const genderOptions = ["Male", "Female"];
+  const [errors, setErrors] = useState({}); // Field-specific error messages
+  const [loading, setLoading] = useState(false); // Loading indicator for submit button
+  const [genderModalVisible, setGenderModalVisible] = useState(false); // Toggle gender picker modal
+  const genderOptions = ["Male", "Female"]; // Gender choices
 
+  // Handle input changes and clear errors
   const handleInputChange = (name, value) => {
     const cleanValue = typeof value === "string" ? value.trim() : value;
     setForm({ ...form, [name]: cleanValue });
+
+    // Remove error once user edits the field
     if (errors[name]) {
       setErrors({ ...errors, [name]: "" });
     }
   };
 
+  // Validate form fields before sending to server
   const validateForm = async () => {
     let newErrors = {};
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const passwordRegex =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&/])[A-Za-z\d@$!%*?&/]{6,14}$/;
     const nameLocationRegex = /^[A-Za-z\s]+$/;
 
-    if (!form.fullName.trim()) {
-      newErrors.fullName = "Full Name is required";
-    } else if (!nameLocationRegex.test(form.fullName)) {
+    // Field-by-field validation
+    if (!form.fullName) newErrors.fullName = "Full Name is required";
+    else if (!nameLocationRegex.test(form.fullName))
       newErrors.fullName = "Only letters and spaces are allowed";
-    }
 
-    if (!form.location.trim()) {
-      newErrors.location = "Location is required";
-    } else if (!nameLocationRegex.test(form.location)) {
+    if (!form.location) newErrors.location = "Location is required";
+    else if (!nameLocationRegex.test(form.location))
       newErrors.location = "Only letters and spaces are allowed";
-    }
 
-    if (!form.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!emailRegex.test(form.email)) {
+    if (!form.email) newErrors.email = "Email is required";
+    else if (!emailRegex.test(form.email))
       newErrors.email = "Invalid email format";
-    }
 
-    if (!form.password.trim()) {
-      newErrors.password = "Password is required";
-    } else if (!passwordRegex.test(form.password)) {
+    if (!form.password) newErrors.password = "Password is required";
+    else if (!passwordRegex.test(form.password))
       newErrors.password =
-        "Password must be 6-14 characters and include uppercase, lowercase, number, and symbol";
-    }
+        "Password must be 6–14 characters, include uppercase, lowercase, number, and symbol";
 
-    if (!form.confirmPassword.trim()) {
+    if (!form.confirmPassword)
       newErrors.confirmPassword = "Confirm your password";
-    } else if (form.password !== form.confirmPassword) {
+    else if (form.password !== form.confirmPassword)
       newErrors.confirmPassword = "Passwords do not match";
-    }
 
-    if (!form.age.trim()) {
-      newErrors.age = "Age is required";
-    } else if (isNaN(form.age) || form.age < 15 || form.age > 100) {
+    if (!form.age) newErrors.age = "Age is required";
+    else if (isNaN(form.age) || form.age < 15 || form.age > 100)
       newErrors.age = "Age must be between 15 and 100";
-    }
 
-    if (!form.PhoneNumber.trim() || form.PhoneNumber.length < 6) {
+    if (!form.PhoneNumber || form.PhoneNumber.length < 6)
       newErrors.PhoneNumber = "Valid phone number is required";
-    }
 
-    if (!form.Gender) {
-      newErrors.Gender = "Gender is required";
-    }
+    if (!form.Gender) newErrors.Gender = "Gender is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // Submit form to backend
   const handleSubmit = async () => {
     const isValid = await validateForm();
     if (!isValid) return;
@@ -112,10 +103,7 @@ const RegisterScreen = () => {
       const response = await fetch(`${API_BASE_URL}/UserAccount`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          age: Number(form.age),
-        }),
+        body: JSON.stringify({ ...form, age: Number(form.age) }),
       });
 
       const text = await response.text();
@@ -123,7 +111,7 @@ const RegisterScreen = () => {
 
       if (response.ok) {
         Alert.alert("Success", "Account created successfully!");
-        navigation.navigate("Home");
+        navigation.navigate("Home"); // Navigate to login page
       } else {
         setErrors(data.error || { general: "Something went wrong." });
       }
@@ -146,6 +134,7 @@ const RegisterScreen = () => {
           style={styles.background}
           resizeMode="cover"
         >
+          {/* Back arrow */}
           <TouchableOpacity
             onPress={() => navigation.navigate("Home")}
             style={styles.arrowContainer}
@@ -157,52 +146,21 @@ const RegisterScreen = () => {
             />
           </TouchableOpacity>
 
+          {/* Scrollable form */}
           <ScrollView
             contentContainerStyle={styles.container}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
+            {/* Dynamic form fields */}
             {[
-              {
-                label: "Full Name",
-                name: "fullName",
-                placeholder: "Enter your full name",
-              },
-              {
-                label: "Email",
-                name: "email",
-                placeholder: "Enter your email",
-                keyboardType: "email-address",
-              },
-              {
-                label: "Password",
-                name: "password",
-                placeholder: "Enter your password",
-                secure: true,
-              },
-              {
-                label: "Confirm Password",
-                name: "confirmPassword",
-                placeholder: "Confirm your password",
-                secure: true,
-              },
-              {
-                label: "Location",
-                name: "location",
-                placeholder: "Enter your location",
-              },
-              {
-                label: "Age",
-                name: "age",
-                placeholder: "Enter your age",
-                keyboardType: "numeric",
-              },
-              {
-                label: "Phone Number",
-                name: "PhoneNumber",
-                placeholder: "Enter your phone number",
-                keyboardType: "numeric",
-              },
+              { label: "Full Name", name: "fullName", placeholder: "Enter your full name" },
+              { label: "Email", name: "email", placeholder: "Enter your email", keyboardType: "email-address" },
+              { label: "Password", name: "password", placeholder: "Enter your password", secure: true },
+              { label: "Confirm Password", name: "confirmPassword", placeholder: "Confirm your password", secure: true },
+              { label: "Location", name: "location", placeholder: "Enter your location" },
+              { label: "Age", name: "age", placeholder: "Enter your age", keyboardType: "numeric" },
+              { label: "Phone Number", name: "PhoneNumber", placeholder: "Enter your phone number", keyboardType: "numeric" },
             ].map(({ label, name, placeholder, keyboardType, secure }) => (
               <View key={name}>
                 <Text style={styles.label}>{label}</Text>
@@ -210,16 +168,15 @@ const RegisterScreen = () => {
                   style={[styles.input, errors[name] && styles.inputError]}
                   placeholder={placeholder}
                   placeholderTextColor="#A9A9A9"
-                  onChangeText={(text) => handleInputChange(name, text)}
                   secureTextEntry={secure}
                   keyboardType={keyboardType}
+                  onChangeText={(text) => handleInputChange(name, text)}
                 />
-                {errors[name] && (
-                  <Text style={styles.errorText}>{errors[name]}</Text>
-                )}
+                {errors[name] && <Text style={styles.errorText}>{errors[name]}</Text>}
               </View>
             ))}
 
+            {/* Gender picker modal */}
             <Text style={styles.label}>Gender</Text>
             <TouchableOpacity
               style={[styles.input, styles.pickerWrapper]}
@@ -229,50 +186,48 @@ const RegisterScreen = () => {
                 {form.Gender || "Select Gender..."}
               </Text>
             </TouchableOpacity>
-            {errors.Gender && (
-              <Text style={styles.errorText}>{errors.Gender}</Text>
-            )}
+            {errors.Gender && <Text style={styles.errorText}>{errors.Gender}</Text>}
 
+            {/* Submit button */}
             <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-              <Text style={styles.buttonText}>
-                {loading ? "Sending..." : "Send"}
-              </Text>
+              <Text style={styles.buttonText}>{loading ? "Sending..." : "Send"}</Text>
             </TouchableOpacity>
           </ScrollView>
-          <Modal
-  transparent={true}
-  animationType="slide"
-  visible={genderModalVisible}
-  onRequestClose={() => setGenderModalVisible(false)}
->
-  <TouchableOpacity
-    style={styles.modalOverlay}
-    activeOpacity={1}
-    onPressOut={() => setGenderModalVisible(false)}
-  >
-    <View style={styles.modalContainer}>
-      {genderOptions.map((option) => (
-        <TouchableOpacity
-          key={option}
-          style={styles.modalOption}
-          onPress={() => {
-            handleInputChange("Gender", option.toLowerCase());
-            setGenderModalVisible(false);
-          }}
-        >
-          <Text style={styles.modalText}>{option}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  </TouchableOpacity>
-</Modal>
 
+          {/* Modal for selecting gender */}
+          <Modal
+            transparent={true}
+            animationType="slide"
+            visible={genderModalVisible}
+            onRequestClose={() => setGenderModalVisible(false)}
+          >
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPressOut={() => setGenderModalVisible(false)}
+            >
+              <View style={styles.modalContainer}>
+                {genderOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={styles.modalOption}
+                    onPress={() => {
+                      handleInputChange("Gender", option.toLowerCase());
+                      setGenderModalVisible(false);
+                    }}
+                  >
+                    <Text style={styles.modalText}>{option}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </TouchableOpacity>
+          </Modal>
         </ImageBackground>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
-    
   );
 };
+
 
 const styles = StyleSheet.create({
   background: {

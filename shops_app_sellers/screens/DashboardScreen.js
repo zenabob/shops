@@ -16,11 +16,10 @@ import TopProductsChart from "../components/TopProductsChart";
 
 const Drawer = createDrawerNavigator();
 
-// 🔧 Custom Drawer Content with navigation to main screen
+//Custom Drawer Content with navigation to main screen
 const CustomDrawerContent = (props) => {
   const navigation = useNavigation();
-  const { shopId, userId } = props; // تمرير المعرفات من DashboardDrawer
-
+  const { shopId, userId } = props; 
   return (
     <DrawerContentScrollView {...props}>
       <DrawerItemList {...props} />
@@ -39,7 +38,7 @@ const CustomDrawerContent = (props) => {
   );
 };
 
-// 🧭 Drawer Navigation for charts
+// Drawer Navigation for charts
 const DashboardDrawer = ({ shopId, userId, isDark }) => {
   return (
     <Drawer.Navigator

@@ -16,7 +16,7 @@ const saltRounds = 10;
 app.use(express.json());
 app.use(cors());
 
-// ✅ Serve the uploads folder (for images)
+// Serve the uploads folder (for images)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // MongoDB Connection
@@ -127,55 +127,46 @@ const ShopSchema = new mongoose.Schema({
 // Models
 const User = mongoose.model("Client", UserSchema);
 const Shop = mongoose.model("Shops", ShopSchema);
-const ProductSchema = new mongoose.Schema({
-  title: String,
-  price: Number,
-  MainImage: String,
-  colors: [
-    {
-      name: String,
-      previewImage: String,
-      images: [String],
-      sizes: [
-        {
-          size: String,
-          stock: Number,
-        },
-      ],
-    },
-  ],
-  shopId: { type: mongoose.Schema.Types.ObjectId, ref: "Shops" },
-});
 
-const Product = mongoose.model("Product", ProductSchema);
-
-// ✅ Login Route
+// Login Route
 app.post("/login", async (req, res) => {
   try {
+    // Extract email and password from the request body
     const { email, password } = req.body;
 
+    // Try to find the user in the database by email
     const user = await User.findOne({ email });
+
+    // If no user is found, respond with 404 (Not Found)
     if (!user) return res.status(404).json({ message: "Email not found." });
 
+    // Compare the entered password with the hashed password stored in the DB
     const isPasswordMatch = await bcrypt.compare(password, user.password);
+
+    // If passwords don’t match, return a 400 (Bad Request) error
     if (!isPasswordMatch) {
       return res.status(400).json({ message: "Incorrect password" });
     }
+
+    // If everything is correct, return a success response with user info
     res.status(200).json({
       message: "Login successful!",
       user: {
-        _id: user._id,
-        fullName: user.fullName,
-        email: user.email,
+        _id: user._id,          // User ID
+        fullName: user.fullName, // User's full name
+        email: user.email,      // User's email
       },
     });
+
   } catch (error) {
+    // If something goes wrong (e.g. DB down), log the error and return 500
     console.error("Error during login:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// ✅ Reset Password
+
+// Reset Password
 app.post("/reset-password", async (req, res) => {
   try {
     const { email, password, confirmPassword } = req.body;
@@ -183,14 +174,18 @@ app.post("/reset-password", async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "Email does not exist" });
 
-    if (user.password === password)
+    //Compare new password with old hashed password
+    const isSame = await bcrypt.compare(password, user.password);
+    if (isSame)
       return res.status(400).json({
         message: "New password must be different from the old password.",
       });
 
+    //Check if passwords match
     if (password !== confirmPassword)
       return res.status(400).json({ message: "Passwords do not match" });
 
+    //Hash new password and save
     user.password = await bcrypt.hash(password, saltRounds);
     await user.save();
 
@@ -201,7 +196,7 @@ app.post("/reset-password", async (req, res) => {
   }
 });
 
-// ✅ Register User
+// Register User
 app.post("/UserAccount", async (req, res) => {
   try {
     const {
@@ -873,7 +868,7 @@ app.post("/orders/:userId", async (req, res) => {
       service: "gmail",
       auth: {
         user: "cartchic14@gmail.com",
-        pass: "lfod msmk jcex atoe", // App Password
+        pass: "yyjl iafr ontm nfck", // App Password
       },
     });
 

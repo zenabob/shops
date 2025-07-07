@@ -16,22 +16,34 @@ import {
 
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {API_BASE_URL} from "../config";
+import { API_BASE_URL } from "../config";
 
 const HomeScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation(); 
+
+  // State to hold form data
   const [form, setForm] = useState({ email: "", password: "" });
+
+  // Toggle visibility of password
   const [passwordVisible, setPasswordVisible] = useState(false);
+
+  // Used to show a loading state when the user presses "Continue"
   const [loading, setLoading] = useState(false);
+
+  // Store errors for email/password fields
   const [errors, setErrors] = useState({ email: "", password: "" });
 
+  // Whenever the user types in the input, update the state
   const handleInputChange = (name, value) => {
     setForm({ ...form, [name]: value });
   };
 
+  // Handle login logic when "Continue" is pressed
   const handleLogin = async () => {
+    // Clear previous errors
     setErrors({ email: "", password: "" });
 
+    // If fields are empty, show relevant error messages
     if (!form.email.trim() || !form.password.trim()) {
       setErrors({
         email: !form.email.trim() ? "Email is required" : "",
@@ -40,23 +52,26 @@ const HomeScreen = () => {
       return;
     }
 
-    setLoading(true);
+    setLoading(true); // Show loading state
+
     try {
+      // Make API request to login
       const response = await fetch(`${API_BASE_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
 
-      const data = await response.json();
+      const data = await response.json(); // Parse response JSON
 
       if (response.ok) {
         const userId = data.user?._id;
         if (userId) {
-          await AsyncStorage.setItem("userId", userId);
-          navigation.navigate("Main");
+          await AsyncStorage.setItem("userId", userId); // Save userId for future use
+          navigation.navigate("Main"); // Move to the main screen
         }
       } else {
+        // Handle different types of login errors
         if (data.message === "Email not found") {
           setErrors({ email: "This email is not registered", password: "" });
         } else if (data.message === "Incorrect password") {
@@ -66,27 +81,29 @@ const HomeScreen = () => {
         }
       }
     } catch (error) {
+      // Network or server issue
       Alert.alert("Error", "Failed to connect to the server.");
     } finally {
-      setLoading(false);
+      setLoading(false); // Stop loading spinner
     }
   };
 
   return (
     <ImageBackground
-      source={require("../assets/img/Background img.png")}
+      source={require("../assets/img/Background img.png")} // Background image
       style={styles.background}
       resizeMode="cover"
     >
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior={Platform.OS === "ios" ? "padding" : "height"} // Ensure keyboard doesn't block input fields
         >
           <ScrollView
             contentContainerStyle={styles.scrollContainer}
             keyboardShouldPersistTaps="handled"
           >
+            {/* Logo image */}
             <Image
               source={require("../assets/img/logo.png")}
               style={styles.logo}
@@ -95,6 +112,7 @@ const HomeScreen = () => {
 
             <Text style={styles.title}>Login</Text>
 
+            {/* Email input */}
             <TextInput
               style={[styles.input, errors.email && styles.inputError]}
               placeholder="email@domain.com"
@@ -107,6 +125,7 @@ const HomeScreen = () => {
               <Text style={styles.errorText}>{errors.email}</Text>
             ) : null}
 
+            {/* Password input with eye icon */}
             <View
               style={[
                 styles.inputContainer,
@@ -117,12 +136,12 @@ const HomeScreen = () => {
                 style={styles.inputField}
                 placeholder="Password"
                 placeholderTextColor="#A9A9A9"
-                secureTextEntry={!passwordVisible}
+                secureTextEntry={!passwordVisible} // Hide text if not visible
                 onChangeText={(text) => handleInputChange("password", text)}
                 value={form.password}
               />
               <TouchableOpacity
-                onPress={() => setPasswordVisible(!passwordVisible)}
+                onPress={() => setPasswordVisible(!passwordVisible)} // Toggle password visibility
               >
                 <Image
                   source={require("../assets/img/ShowPassword.png")}
@@ -134,22 +153,25 @@ const HomeScreen = () => {
               <Text style={styles.errorText}>{errors.password}</Text>
             ) : null}
 
+            {/* Forgot password link */}
             <TouchableOpacity
               onPress={() => navigation.navigate("ForgetPassword")}
             >
               <Text style={styles.forgotPassword}>Forgot Password?</Text>
             </TouchableOpacity>
 
+            {/* Continue button */}
             <TouchableOpacity
               style={styles.continueButton}
               onPress={handleLogin}
-              disabled={loading}
+              disabled={loading} // Disable button while loading
             >
               <Text style={styles.continueButtonText}>
                 {loading ? "Loading..." : "Continue"}
               </Text>
             </TouchableOpacity>
 
+            {/* Navigate to account creation */}
             <TouchableOpacity
               onPress={() => navigation.navigate("CreateAccount")}
             >
@@ -162,6 +184,7 @@ const HomeScreen = () => {
   );
 };
 
+// 🖌️ All your style rules are here
 const styles = StyleSheet.create({
   background: {
     flex: 1,
@@ -177,14 +200,14 @@ const styles = StyleSheet.create({
     width: 500,
     height: 400,
     marginBottom: 50,
-    marginTop:-130,
+    marginTop: -130,
   },
   title: {
     fontSize: 36,
     fontWeight: "bold",
     color: "#fff",
     marginBottom: 25,
-    marginTop:-100,
+    marginTop: -100,
   },
   input: {
     width: "100%",
@@ -194,7 +217,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     fontSize: 16,
     marginBottom: 10,
-    elevation: 2,
+    elevation: 2, // Adds subtle shadow
   },
   inputContainer: {
     flexDirection: "row",
@@ -222,7 +245,7 @@ const styles = StyleSheet.create({
     color: "#000",
     alignSelf: "flex-end",
     marginBottom: 20,
-    marginRight:254,
+    marginRight: 254, // Consider adjusting for smaller screens
   },
   continueButton: {
     width: "100%",

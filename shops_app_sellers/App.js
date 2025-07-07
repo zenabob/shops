@@ -25,16 +25,12 @@ const Drawer = createDrawerNavigator();
 
 function MainDrawerWrapper({ route }) {
  const { userId, shopId } = route.params;
-
-  console.log("🧩 MainDrawerWrapper - userId:", userId); // ADD THIS
-
+  console.log("🧩 MainDrawerWrapper - userId:", userId); 
   return <MainDrawer userId={userId} shopId={shopId} />;
-
 }
 
-
 function MainDrawer({ userId, shopId }) {
-  const navigation = useNavigation(); // ✅ الحل هنا
+  const navigation = useNavigation(); 
   const [notificationCount, setNotificationCount] = React.useState(0);
 
   useEffect(() => {
@@ -46,7 +42,7 @@ function MainDrawer({ userId, shopId }) {
         );
         setNotificationCount(res.data.length);
       } catch (err) {
-        console.error("❌ Failed to fetch notification count", err);
+        console.error("Failed to fetch notification count", err);
       }
     };
 
@@ -88,7 +84,7 @@ function MainDrawer({ userId, shopId }) {
 </Drawer.Screen>
 <Drawer.Screen
   name="Dashboard"
-  options={{ drawerLabel: "📊 Dashboard" }}
+  options={{ drawerLabel: " Dashboard" }}
 >
   {props => <DashboardScreen {...props} shopId={shopId} />}
 </Drawer.Screen>

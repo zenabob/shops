@@ -80,7 +80,7 @@ const TopProductsChart = ({ shopId, darkMode }) => {
           percent: ((item.totalQuantity / total) * 100).toFixed(1),
         }));
 
-        // 🧩 Fill up to 10 bars with tiny y value instead of 0
+        // Fill up to 10 bars with tiny y value instead of 0
         while (formatted.length < 5) {
           const fillerIndex = formatted.length;
           formatted.push({

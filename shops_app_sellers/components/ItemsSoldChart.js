@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import {
   View,
-  ActivityIndicator,
   Text,
-  StyleSheet,
   TouchableOpacity,
+  ActivityIndicator,
   ScrollView,
+  StyleSheet,
+  Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import axios from 'axios';
 import {
   VictoryLine,
@@ -16,79 +18,182 @@ import {
   VictoryTooltip,
   VictoryVoronoiContainer,
   VictoryLabel,
+  VictoryScatter,
 } from 'victory-native';
 import { API_BASE_URL } from '../config';
 
 const ItemsSoldChart = ({ shopId, darkMode }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [range, setRange] = useState("month");
+  const [range, setRange] = useState('month');
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [topLabel, setTopLabel] = useState('');
+  const [maxPoint, setMaxPoint] = useState(null);
+
+  const formatDate = (date) => {
+    const d = new Date(date);
+    return range === 'day'
+      ? d.toISOString().split('T')[0]
+      : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const dateParam = formatDate(selectedDate);
+      const res = await axios.get(
+        `${API_BASE_URL}/statistics/items-sold?shopId=${shopId}&range=${range}`
+      );
+
+      const filtered = res.data.filter((item) =>
+        item._id?.date?.startsWith(dateParam)
+      );
+
+      let formatted = [];
+
+      if (range === 'day') {
+        const hours = Array.from({ length: 24 }, (_, i) =>
+          `${String(i).padStart(2, '0')}:00`
+        );
+        const map = new Map(
+          filtered.map((item) => [
+            item._id.date.split('T')[1]?.slice(0, 5),
+            item.totalQuantity,
+          ])
+        );
+
+        formatted = hours.map((hour) => ({
+          x: hour,
+          y: map.get(hour) || 0,
+          label: `${hour}\n${map.get(hour) || 0} items`,
+        }));
+      } else {
+        const daysInMonth = new Date(
+          selectedDate.getFullYear(),
+          selectedDate.getMonth() + 1,
+          0
+        ).getDate();
+        const map = new Map(
+          filtered.map((item) => [
+            parseInt(item._id.date.slice(8, 10)),
+            item.totalQuantity,
+          ])
+        );
+
+        formatted = Array.from({ length: daysInMonth }, (_, i) => {
+          const day = i + 1;
+          const y = map.get(day) || 0;
+          return {
+            x: day,
+            y,
+            label: `Day ${day}\n${y} items`,
+          };
+        });
+      }
+
+      setData(formatted);
+
+      if (formatted.length > 0) {
+        const max = formatted.reduce((prev, curr) => (curr.y > prev.y ? curr : prev));
+        setTopLabel(
+          range === 'day'
+            ? `Most sold hour: ${max.x} (${max.y} items)`
+            : `Most sold day: Day ${max.x} (${max.y} items)`
+        );
+        setMaxPoint(max);
+      } else {
+        setTopLabel('No data for selected date');
+        setMaxPoint(null);
+      }
+    } catch (err) {
+      console.error('Error fetching data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const res = await axios.get(`${API_BASE_URL}/statistics/items-sold?shopId=${shopId}&range=${range}`);
-        const formatted = res.data.map(item => ({
-          x: item._id.date,
-          y: item.totalQuantity,
-          label: `${item._id.date}\n${item.totalQuantity} items`
-        }));
-        setData(formatted);
-
-        // حساب أكثر وقت بيعًا
-        if (formatted.length > 0) {
-          const max = formatted.reduce((prev, current) => (current.y > prev.y ? current : prev));
-          setTopLabel(range === 'day'
-            ? `🕐 Most sold day: ${max.x} (${max.y} items)`
-            : `📆 Most sold month: ${max.x} (${max.y} items)`);
-        } else {
-          setTopLabel('');
-        }
-      } catch (err) {
-        console.error('Error fetching items sold:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
-  }, [shopId, range]);
+  }, [shopId, range, selectedDate]);
+
+  const onDateChange = (event, date) => {
+    if (date) setSelectedDate(date);
+    setShowDatePicker(false);
+  };
 
   if (loading) return <ActivityIndicator style={{ marginTop: 20 }} />;
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: darkMode ? '#111' : '#fff' }]}>
+    <ScrollView
+      contentContainerStyle={[
+        styles.container,
+        { backgroundColor: darkMode ? '#111' : '#fff' },
+      ]}
+    >
       <Text style={[styles.title, { color: darkMode ? '#fff' : '#000' }]}>
-        📈 Items Sold Over Time ({range === "month" ? "Monthly" : "Daily"})
+        Items Sold ({range === 'month' ? 'Monthly View' : 'Daily View'})
       </Text>
 
+      <TouchableOpacity
+        style={[
+          styles.button,
+          { backgroundColor: darkMode ? '#444' : '#ddd' },
+        ]}
+        onPress={() => setShowDatePicker(true)}
+      >
+        <Text style={{ color: darkMode ? '#fff' : '#000' }}>
+          {range === 'month' ? 'Select Month' : 'Select Day'}:{' '}
+          {formatDate(selectedDate)}
+        </Text>
+      </TouchableOpacity>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={selectedDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onDateChange}
+        />
+      )}
+
+      {/* Chart */}
       <VictoryChart
         theme={VictoryTheme.material}
-        domainPadding={{ x: 50, y: 20 }}
-        padding={{ top: 20, bottom: 70, left: 70, right: 20 }}
+        domainPadding={{ x: 40, y: 20 }}
+        padding={{ top: 20, bottom: 70, left: 60, right: 20 }}
         containerComponent={<VictoryVoronoiContainer />}
         width={350}
         height={300}
       >
         <VictoryAxis
-          label="📅 Date / Hour"
-          axisLabelComponent={
-            <VictoryLabel dy={30} style={{ fill: darkMode ? '#fff' : '#000', fontSize: 12, fontWeight: 'bold' }} />
-          }
+          label="Time"
           fixLabelOverlap
+          axisLabelComponent={
+            <VictoryLabel
+              dy={30}
+              style={{ fill: darkMode ? '#fff' : '#000' }}
+            />
+          }
           style={{
-            tickLabels: { angle: -45, fontSize: 9, fill: darkMode ? '#fff' : '#000' },
+            tickLabels: {
+              angle: -45,
+              fontSize: 9,
+              fill: darkMode ? '#fff' : '#000',
+            },
             axis: { stroke: darkMode ? '#ccc' : '#333' },
             ticks: { stroke: darkMode ? '#ccc' : '#333' },
           }}
         />
-
         <VictoryAxis
           dependentAxis
-          label="🛒 Quantity Sold"
+          label="Quantity"
           axisLabelComponent={
-            <VictoryLabel angle={-90} dy={-40} style={{ fill: darkMode ? '#fff' : '#000', fontSize: 12, fontWeight: 'bold' }} />
+            <VictoryLabel
+              angle={-90}
+              dy={-40}
+              style={{ fill: darkMode ? '#fff' : '#000' }}
+            />
           }
           style={{
             tickLabels: { fontSize: 10, fill: darkMode ? '#fff' : '#000' },
@@ -96,12 +201,47 @@ const ItemsSoldChart = ({ shopId, darkMode }) => {
             ticks: { stroke: darkMode ? '#ccc' : '#333' },
           }}
         />
-
         <VictoryLine
           data={data}
           interpolation="monotoneX"
+          labels={({ datum }) => datum.label}
           style={{
-            data: { stroke: darkMode ? '#0af' : '#007AFF', strokeWidth: 2 },
+            data: {
+              stroke: '#007AFF',
+              strokeWidth: 2,
+            },
+          }}
+          labelComponent={
+            <VictoryTooltip
+              flyoutStyle={{
+                fill: darkMode ? '#222' : '#fff',
+                stroke: darkMode ? '#aaa' : '#ccc',
+              }}
+              style={{
+                fill: darkMode ? '#fff' : '#000',
+                fontSize: 10,
+              }}
+            />
+          }
+        />
+
+        {/* نقاط الخط (scatter) لتفعيل الضغط عليها */}
+        <VictoryScatter
+          data={data}
+          size={({ datum }) =>
+            maxPoint && datum.x === maxPoint.x && datum.y === maxPoint.y
+              ? 6
+              : 3
+          }
+          style={{
+            data: {
+              fill: ({ datum }) =>
+                maxPoint && datum.x === maxPoint.x && datum.y === maxPoint.y
+                  ? '#FF5733' // نقطة الماكسيموم
+                  : darkMode
+                  ? '#0af'
+                  : '#007AFF',
+            },
           }}
           labels={({ datum }) => datum.label}
           labelComponent={
@@ -119,20 +259,31 @@ const ItemsSoldChart = ({ shopId, darkMode }) => {
         />
       </VictoryChart>
 
-      <Text style={[styles.infoText, { color: darkMode ? '#ccc' : '#444' }]}>
-        🔹 X Axis = Date or Hour of sale{'\n'}
-        🔹 Y Axis = Quantity of items sold
+      <Text
+        style={[styles.infoText, { color: darkMode ? '#ccc' : '#444' }]}
+      >
+        X Axis = {range === 'month' ? 'Day' : 'Hour'} of{' '}
+        {formatDate(selectedDate)}
+        {'\n'}
+        Y Axis = Quantity Sold
       </Text>
 
-      {topLabel !== '' && (
-        <Text style={[styles.topLabel, { color: darkMode ? '#0af' : '#007AFF' }]}>
+      {topLabel && (
+        <Text
+          style={[styles.topLabel, { color: darkMode ? '#0af' : '#007AFF' }]}
+        >
           {topLabel}
         </Text>
       )}
 
       <TouchableOpacity
-        style={[styles.button, { backgroundColor: darkMode ? '#0af' : '#007AFF' }]}
-        onPress={() => setRange(prev => (prev === 'month' ? 'day' : 'month'))}
+        style={[
+          styles.button,
+          { backgroundColor: darkMode ? '#0af' : '#007AFF' },
+        ]}
+        onPress={() =>
+          setRange((prev) => (prev === 'month' ? 'day' : 'month'))
+        }
       >
         <Text style={styles.buttonText}>
           Switch to {range === 'month' ? 'Daily' : 'Monthly'} View
@@ -143,38 +294,12 @@ const ItemsSoldChart = ({ shopId, darkMode }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 16,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-  },
-  infoText: {
-    marginTop: 10,
-    textAlign: 'center',
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  topLabel: {
-    marginTop: 8,
-    fontWeight: '600',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  button: {
-    marginTop: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 22,
-    borderRadius: 8,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
+  container: { flexGrow: 1, padding: 16, alignItems: 'center' },
+  title: { fontSize: 18, fontWeight: '600', marginBottom: 16 },
+  infoText: { marginTop: 10, textAlign: 'center', fontSize: 13, lineHeight: 20 },
+  topLabel: { marginTop: 8, fontWeight: '600', fontSize: 14, textAlign: 'center' },
+  button: { marginTop: 20, paddingVertical: 10, paddingHorizontal: 22, borderRadius: 8 },
+  buttonText: { color: '#fff', fontWeight: 'bold' },
 });
 
 export default ItemsSoldChart;

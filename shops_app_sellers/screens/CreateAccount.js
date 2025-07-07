@@ -12,13 +12,15 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { Alert } from "react-native";
-import {API_BASE_URL} from "../config";
+import { API_BASE_URL } from "../config";
 
 const RegisterScreen = () => {
   const navigation = useNavigation();
+
+  // Form state to hold input values
   const [form, setForm] = useState({
     shopName: "",
     fullName: "",
@@ -29,9 +31,11 @@ const RegisterScreen = () => {
     phoneNumber: "",
   });
 
+  // Error state to display validation or server errors
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Loading state for submit button
 
+  // Update form inputs and clear related errors on typing
   const handleInputChange = (name, value) => {
     setForm({ ...form, [name]: value.trim() });
     if (errors[name]) {
@@ -39,17 +43,16 @@ const RegisterScreen = () => {
     }
   };
 
+  // Validate form fields before submission
   const validateForm = async () => {
     let newErrors = {};
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const passwordRegex =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&\/])[A-Za-z\d@$!%*?&\/]{6,14}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&\/])[A-Za-z\d@$!%*?&\/]{6,14}$/;
     const nameLocationRegex = /^[A-Za-z\s]+$/;
+    const israeliPhoneRegex = /^(05\d{8}|07[2-9]\d{7}|0[2-4,8-9]\d{7})$/;
 
-    if (!form.shopName.trim()) {
-      newErrors.shopName = "Shop's Name is required";
-    }
+    if (!form.shopName.trim()) newErrors.shopName = "Shop's Name is required";
 
     if (!form.fullName.trim()) {
       newErrors.fullName = "Full Name is required";
@@ -71,7 +74,7 @@ const RegisterScreen = () => {
 
     if (!form.password.trim()) {
       newErrors.password = "Password is required";
-    } else if (!passwordRegex.test(form.password.trim())) {
+    } else if (!passwordRegex.test(form.password)) {
       newErrors.password =
         "Password must be 6-14 characters, include uppercase, lowercase, number, and symbol.";
     }
@@ -82,17 +85,17 @@ const RegisterScreen = () => {
       newErrors.confirmPassword = "Passwords do not match";
     }
 
-    const israeliPhoneRegex = /^(05\d{8}|07[2-9]\d{7}|0[2-4,8-9]\d{7})$/;
     if (!form.phoneNumber.trim()) {
       newErrors.phoneNumber = "Phone number is required";
     } else if (!israeliPhoneRegex.test(form.phoneNumber)) {
       newErrors.phoneNumber = "Invalid phone number";
     }
 
-    setErrors((prevErrors) => ({ ...prevErrors, ...newErrors }));
+    setErrors((prev) => ({ ...prev, ...newErrors }));
     return Object.keys(newErrors).length === 0;
   };
 
+  // Handle form submission
   const handleSubmit = async () => {
     const isValid = await validateForm();
     if (!isValid) return;
@@ -104,17 +107,11 @@ const RegisterScreen = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          phoneNumber: String(form.phoneNumber), // Convert phoneNumber to String
+          phoneNumber: String(form.phoneNumber), 
         }),
       });
 
       const text = await response.text();
-      console.log("Server Response:", text);
-
-      if (!text) {
-        throw new Error("Empty response from server");
-      }
-
       const data = JSON.parse(text);
 
       if (response.ok) {
@@ -123,9 +120,7 @@ const RegisterScreen = () => {
           "Your account has been created. An admin will contact you for verification.",
           [{ text: "OK", onPress: () => navigation.navigate("Home") }]
         );
-        navigation.navigate("Home");
       } else {
-        console.log("Error:", data.error);
         setErrors(data.error || {});
       }
     } catch (error) {
@@ -147,6 +142,7 @@ const RegisterScreen = () => {
           style={styles.background}
           resizeMode="cover"
         >
+          {/* Back Arrow */}
           <TouchableOpacity
             onPress={() => navigation.navigate("Home")}
             style={styles.arrowContainer}
@@ -158,102 +154,51 @@ const RegisterScreen = () => {
             />
           </TouchableOpacity>
 
+          {/* Form Inputs */}
           <ScrollView
             contentContainerStyle={styles.container}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
+            {/* Display general error */}
             {Object.keys(errors).length > 0 && (
               <Text style={styles.errorText}>
                 {errors.general || "Please fix the errors below"}
               </Text>
             )}
 
-            <Text style={styles.label}>Shop's Name</Text>
-            <TextInput
-              style={[styles.input, errors.shopName && styles.inputError]}
-              placeholder="Enter your shop's name"
-              placeholderTextColor="#A9A9A9"
-              onChangeText={(text) => handleInputChange("shopName", text)}
-            />
-            {errors.shopName && (
-              <Text style={styles.errorText}>{errors.shopName}</Text>
-            )}
+            {/* Individual fields with labels and validation */}
+            {[
+              ["Shop's Name", "shopName"],
+              ["Full Name", "fullName"],
+              ["Email", "email"],
+              ["Password", "password", true],
+              ["Confirm Password", "confirmPassword", true],
+              ["Location", "location"],
+              ["Phone number", "phoneNumber"],
+            ].map(([label, key, isPassword]) => (
+              <React.Fragment key={key}>
+                <Text style={styles.label}>{label}</Text>
+                <TextInput
+                  style={[styles.input, errors[key] && styles.inputError]}
+                  placeholder={`Enter your ${label.toLowerCase()}`}
+                  placeholderTextColor="#A9A9A9"
+                  onChangeText={(text) => handleInputChange(key, text)}
+                  keyboardType={
+                    key === "email"
+                      ? "email-address"
+                      : key === "phoneNumber"
+                      ? "phone-pad"
+                      : "default"
+                  }
+                  secureTextEntry={isPassword}
+                  value={form[key]}
+                />
+                {errors[key] && <Text style={styles.errorText}>{errors[key]}</Text>}
+              </React.Fragment>
+            ))}
 
-            <Text style={styles.label}>Full Name</Text>
-            <TextInput
-              style={[styles.input, errors.fullName && styles.inputError]}
-              placeholder="Enter your full name"
-              placeholderTextColor="#A9A9A9"
-              onChangeText={(text) => handleInputChange("fullName", text)}
-            />
-            {errors.fullName && (
-              <Text style={styles.errorText}>{errors.fullName}</Text>
-            )}
-
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
-              placeholder="Enter your email"
-              placeholderTextColor="#A9A9A9"
-              keyboardType="email-address"
-              onChangeText={(text) => handleInputChange("email", text)}
-            />
-            {errors.email && (
-              <Text style={styles.errorText}>{errors.email}</Text>
-            )}
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={[styles.input, errors.password && styles.inputError]}
-              placeholder="Enter your password"
-              placeholderTextColor="#A9A9A9"
-              secureTextEntry
-              onChangeText={(text) => handleInputChange("password", text)}
-            />
-            {errors.password && (
-              <Text style={styles.errorText}>{errors.password}</Text>
-            )}
-
-            <Text style={styles.label}>Confirm Password</Text>
-            <TextInput
-              style={[
-                styles.input,
-                errors.confirmPassword && styles.inputError,
-              ]}
-              placeholder="Confirm your password"
-              placeholderTextColor="#A9A9A9"
-              secureTextEntry
-              onChangeText={(text) =>
-                handleInputChange("confirmPassword", text)
-              }
-            />
-            {errors.confirmPassword && (
-              <Text style={styles.errorText}>{errors.confirmPassword}</Text>
-            )}
-
-            <Text style={styles.label}>Location</Text>
-            <TextInput
-              style={[styles.input, errors.location && styles.inputError]}
-              placeholder="Enter your location"
-              placeholderTextColor="#A9A9A9"
-              onChangeText={(text) => handleInputChange("location", text)}
-            />
-            {errors.location && (
-              <Text style={styles.errorText}>{errors.location}</Text>
-            )}
-
-            <Text style={styles.label}>Phone number</Text>
-            <TextInput
-              style={[styles.input, errors.phoneNumber && styles.inputError]}
-              placeholder="Enter your Phone number"
-              placeholderTextColor="#A9A9A9"
-              keyboardType="phone-pad"
-              onChangeText={(text) => handleInputChange("phoneNumber", text)}
-              value={form.phoneNumber}
-            />
-            {errors.phoneNumber && (
-              <Text style={styles.errorText}>{errors.phoneNumber}</Text>
-            )}
+            {/* Static Percent Field */}
             <Text style={styles.label}>Percent</Text>
             <TextInput
               style={styles.input}
@@ -262,8 +207,9 @@ const RegisterScreen = () => {
               selectTextOnFocus={false}
             />
 
+            {/* Submit button */}
             <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-              <Text style={styles.buttonText}>Send</Text>
+              <Text style={styles.buttonText}>{loading ? "Sending..." : "Send"}</Text>
             </TouchableOpacity>
           </ScrollView>
         </ImageBackground>
@@ -271,18 +217,14 @@ const RegisterScreen = () => {
     </KeyboardAvoidingView>
   );
 };
+
+// Styles
 const styles = StyleSheet.create({
   background: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     height: "150%",
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    // paddingBottom: 30, // Prevents last input from being hidden
   },
   container: {
     width: "70%",

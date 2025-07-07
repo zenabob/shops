@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "ShopsApp",
-    "slug": "ShopsApp",
+    "name": "CheckCartApp",
+    "slug": "CheckCartApp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

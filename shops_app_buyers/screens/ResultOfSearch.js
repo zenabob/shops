@@ -9,7 +9,7 @@ import {
   Alert,
 } from "react-native";
 import ProductDetails from "../modals/ProductDetails";
-import {API_BASE_URL} from "../config";
+import { API_BASE_URL } from "../config";
 import { SELLER_API_BASE_URL } from "../seller-api";
 
 const ResultOfSearch = ({ route, navigation }) => {
@@ -21,268 +21,153 @@ const ResultOfSearch = ({ route, navigation }) => {
   const [selectedColorName, setSelectedColorName] = useState("");
   const [selectedColorImages, setSelectedColorImages] = useState([]);
   const [selectedSize, setSelectedSize] = useState(null);
-  const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
-  if (!results) fetchProducts();
+    if (!results) fetchProducts();
+    const intervalId = setInterval(() => fetchProducts(), 10000);
+    return () => clearInterval(intervalId);
+  }, []);
 
-  const intervalId = setInterval(() => {
-    fetchProducts(); // refresh products every 10 seconds
-  }, 10000);
+  const phraseSynonyms = {
+    "women pants": "women’s bottom",
+    "women trousers": "women’s bottom",
+    "ladies pants": "women’s bottom",
+    "men pants": "men’s bottom",
+    "kids pants": "kid's clothes",
+    "girls dress": "dress",
+    "women top": "women’s blouse",
+    "women blouse": "women’s blouse",
+    "women skirt": "skirt",
+    "pants":"women’s bottom",
+    "bottoms":"women’s bottom",
+    "bottom":"women’s bottom",
+    "tops": "women’s blouse",
+    "top": "women’s blouse",
+    "women dress": "dress",
+  };
 
-  return () => clearInterval(intervalId);
-}, []);
-
+  const normalizePhrase = (input) => {
+    const trimmed = input.toLowerCase().trim().replace(/[’']/g, "");
+    const foundKey = Object.keys(phraseSynonyms).find((key) =>
+      trimmed.includes(key)
+    );
+    return foundKey ? phraseSynonyms[foundKey] : input;
+  };
 
   const fetchProducts = async () => {
     try {
-      let url = "";
-
-      if (shopId) {
-        url = `${SELLER_API_BASE_URL}/public/search-category-products?q=${categoryName}`;
-      } else {
-        url = `${SELLER_API_BASE_URL}/public/all-products`;
-      }
+      const url = shopId
+        ? `${SELLER_API_BASE_URL}/public/search-category-products?q=${categoryName}`
+        : `${SELLER_API_BASE_URL}/public/all-products`;
 
       const res = await fetch(url);
       const data = await res.json();
 
-      let filtered = [];
-
-      const searchWords = categoryName.toLowerCase().split(" ");
-      const isDoubleWord = searchWords.length === 2;
-      const [firstWord, secondWord] = searchWords;
-
-      const genderWords = [
-        "woman",
-        "women",
-        "man",
-        "men",
-        "kid",
-        "kids",
-        "child",
-        "children",
-      ];
-      const feminineCategories = ["dress", "dresses", "skirt", "skirts"];
-      const categoryNameLower = categoryName.toLowerCase();
+      const normalizedSearch = normalizePhrase(categoryName);
+      const categoryNameLower = normalizedSearch.toLowerCase();
 
       const isExactCategoryMatch = data.some(
         (p) => p.categoryName?.toLowerCase() === categoryNameLower
       );
+
       if (isExactCategoryMatch) {
         const exactCategoryProducts = data.filter(
           (p) => p.categoryName?.toLowerCase() === categoryNameLower
         );
-        
         setProducts(exactCategoryProducts);
         return;
       }
 
-      const normalizeGender = (word) => {
-        if (word === "woman") return "women";
-        if (word === "man") return "men";
-        if (word === "kids") return "kid";
-        return word;
-      };
-      const normalizedWord = normalizeGender(categoryNameLower);
-      const regex = new RegExp(`\\b${normalizedWord}\\b`);
-
-      if (!shopId && !isDoubleWord && genderWords.includes(categoryNameLower)) {
-        const partialCategoryProducts = data.filter((product) => {
-          const cat = product.categoryName?.toLowerCase() || "";
-
-          const matchNormalizedGender = regex.test(cat);
-          const matchFeminine =
-            normalizedWord === "women" && feminineCategories.includes(cat);
-
-          return matchNormalizedGender || matchFeminine;
-        });
-
-        if (partialCategoryProducts.length > 0) {
-          setProducts(partialCategoryProducts);
-          return;
-        }
-      }
-
-      if (!shopId && isDoubleWord && genderWords.includes(firstWord)) {
-        const secondWordNormalized = normalizeGender(secondWord);
-        const isExactCategory = data.some(
-          (p) => p.categoryName?.toLowerCase() === secondWordNormalized
+      const filtered = data.filter((product) => {
+        const productCategory = product.categoryName?.toLowerCase().replace(/[’']/g, "");
+        const productTitle = product.title?.toLowerCase().replace(/[’']/g, "");
+        return (
+          productCategory === categoryNameLower ||
+          productTitle.includes(categoryNameLower) ||
+          productCategory.includes(categoryNameLower)
         );
+      });
 
-        if (isExactCategory) {
-          const filteredByColorAndCategory = data.filter((product) => {
-            const cat = product.categoryName?.toLowerCase() || "";
-            const colors =
-              product.colors?.map((c) => c.name.toLowerCase()) || [];
+      const availableProducts = filtered.filter((product) =>
+        product.colors?.some((color) =>
+          color.sizes?.some((s) => s.stock > 0)
+        )
+      );
 
-            const colorMatch = colors.includes(firstWord);
-            const categoryMatch = cat === secondWordNormalized;
-
-            return colorMatch && categoryMatch;
-          });
-
-          setProducts(filteredByColorAndCategory);
-          return;
-        }
-      }
-
-      if (shopId) {
-        filtered = data;
-      } else {
-        filtered = data.filter((product) => {
-          const cat = product.categoryName?.toLowerCase() || "";
-          const title = product.title?.toLowerCase() || "";
-          const colors = product.colors?.map((c) => c.name.toLowerCase()) || [];
-
-          if (isDoubleWord) {
-            const colorMatch = colors.includes(firstWord);
-            const categoryMatch = cat.includes(secondWord);
-            if (colorMatch && categoryMatch) return true;
-          }
-
-          return title.includes(categoryNameLower);
-        });
-      }
-
-      // ✅ إزالة المنتجات التي كل المقاسات منها Sold Out
-const availableProducts = filtered.filter((product) => {
-  if (!product.colors || product.colors.length === 0) return false;
-
-  return product.colors.some((color) =>
-    color.sizes?.some((s) => s.stock > 0)
-  );
-});
-
-setProducts(availableProducts);
-
+      setProducts(availableProducts);
     } catch (err) {
       console.error("❌ Error fetching search result products", err);
     }
   };
 
-  const handleAddToCart = async (cartItem) => {
-    try {
-      if (!userId) {
-        Alert.alert("User not logged in");
-        return;
-      }
-
-      const response = await fetch(
-        `${API_BASE_URL}/profile/${userId}/cart`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(cartItem),
-        }
-      );
-
-      const text = await response.text();
-      if (response.ok) {
-        Alert.alert("Product added to cart!");
-      } else {
-        Alert.alert("Error: " + text);
-      }
-    } catch (err) {
-      console.error("Error adding to cart:", err);
-      Alert.alert("Something went wrong");
-    }
+  const handleAddToCart = () => {
+    Alert.alert("Product added to cart");
   };
 
-  const handleProductPress = async (item) => {
-    try {
-      const res = await fetch(
-        `${SELLER_API_BASE_URL}/public/shop/${item.shopId}/product/${item._id}`
-      );
-      const data = await res.json();
-      const product = data.product;
+  const handleProductPress = (product) => {
+    const mainImage = product.MainImage?.startsWith("http")
+      ? product.MainImage
+      : `${SELLER_API_BASE_URL}${product.MainImage}`;
 
-      if (product.colors && product.colors.length > 0) {
-        const firstColor = product.colors[0];
-        setSelectedColorName(firstColor.name);
-        setSelectedMainImage(
-          firstColor.previewImage || firstColor.images?.[0] || product.MainImage
-        );
-        setSelectedColorImages(firstColor.images || []);
-      } else {
-        setSelectedColorName("");
-        setSelectedMainImage(product.MainImage);
-        setSelectedColorImages([]);
-      }
+    const firstColor = product.colors?.[0];
+    const firstColorImages = firstColor?.images || [];
 
-      setSelectedProductDetails({ ...product, shopId: item.shopId });
-      setSelectedSize(null);
-      setShowDetailModal(true);
-    } catch (error) {
-      console.error("❌ Error fetching full product details:", error);
-      Alert.alert("Failed to load product details.");
-    }
+    setSelectedProductDetails(product);
+    setSelectedMainImage(mainImage);
+    setSelectedColorName(firstColor?.name || "");
+    setSelectedColorImages(firstColorImages);
+    setSelectedSize(null);
+    setShowDetailModal(true);
   };
-  const renderItem = ({ item }) => {
-  const hasValidOffer =
-    item.offer && new Date(item.offer.expiresAt) > new Date();
-
-  const discountedPrice = hasValidOffer
-    ? (item.price * (1 - item.offer.discountPercentage / 100)).toFixed(2)
-    : null;
-
-  return (
-    <TouchableOpacity
-      style={styles.productCard}
-      onPress={() => handleProductPress(item)}
-    >
-      <Image
-  source={{
-    uri: item.MainImage?.startsWith("http")
-      ? item.MainImage
-      : `${SELLER_API_BASE_URL}${item.MainImage}`,
-  }}
-  style={styles.productImage}
-/>
-
-      <Text style={styles.productTitle}>{item.title}</Text>
-      {hasValidOffer ? (
-        <View style={{ alignItems: "center" }}>
-          <Text style={styles.originalPrice}>ILS {item.price}</Text>
-          <Text style={styles.discountedPrice}>ILS {discountedPrice}</Text>
-        </View>
-      ) : (
-        <Text style={styles.productPrice}>ILS {item.price}</Text>
-      )}
-    </TouchableOpacity>
-  );
-};
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        onPress={() => navigation.navigate("Main")}
-        style={styles.backButton}
-      >
-        <Image
-          source={require("../assets/img/BlackArrow.png")}
-          style={styles.backIcon}
-        />
+      <TouchableOpacity onPress={() => navigation.navigate("Main")} style={styles.backButton}>
+        <Image source={require("../assets/img/BlackArrow.png")} style={styles.backIcon} />
       </TouchableOpacity>
       <Text style={styles.heading}>Results for "{categoryName}"</Text>
 
-{products.length === 0 ? (
-  <View style={styles.emptyContainer}>
-    <Image
-      source={require("../assets/img/no-results.png")} 
-      style={styles.emptyImage}
-    />
-    <Text style={styles.emptyText}>No results found...</Text>
-  </View>
-) : (
-  <FlatList
-    data={products}
-    keyExtractor={(item) => item._id}
-    renderItem={renderItem}
-    numColumns={2}
-    contentContainerStyle={{ paddingBottom: 100 }}
-  />
-)}
+      {products.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Image source={require("../assets/img/no-results.png")} style={styles.emptyImage} />
+          <Text style={styles.emptyText}>No results found...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={products}
+          keyExtractor={(item) => item._id}
+          renderItem={({ item }) => {
+            const hasValidOffer = item.offer && new Date(item.offer.expiresAt) > new Date();
+            const discountedPrice = hasValidOffer
+              ? (item.price * (1 - item.offer.discountPercentage / 100)).toFixed(2)
+              : null;
+
+            return (
+              <TouchableOpacity style={styles.productCard} onPress={() => handleProductPress(item)}>
+                <Image
+                  source={{
+                    uri: item.MainImage?.startsWith("http")
+                      ? item.MainImage
+                      : `${SELLER_API_BASE_URL}${item.MainImage}`,
+                  }}
+                  style={styles.productImage}
+                />
+                <Text style={styles.productTitle}>{item.title}</Text>
+                {hasValidOffer ? (
+                  <View style={{ alignItems: "center" }}>
+                    <Text style={styles.originalPrice}>ILS {item.price}</Text>
+                    <Text style={styles.discountedPrice}>ILS {discountedPrice}</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.productPrice}>ILS {item.price}</Text>
+                )}
+              </TouchableOpacity>
+            );
+          }}
+          numColumns={2}
+          contentContainerStyle={{ paddingBottom: 100 }}
+        />
+      )}
 
       {selectedProductDetails && (
         <ProductDetails
@@ -307,76 +192,34 @@ setProducts(availableProducts);
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 50,
-    backgroundColor: "#f7f7f7",
-  },
-  heading: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginLeft: 15,
-    marginBottom: 15,
-    marginTop: 20,
-  },
+  container: { flex: 1, backgroundColor: "#fff", paddingTop: 80 },
+  heading: { fontSize: 22, fontWeight: "bold", margin: 10 },
+  backButton: { position: "absolute", top: 35, left: 15, zIndex: 10 },
+  backIcon: { width: 25, height: 25 },
   productCard: {
     flex: 1,
-    backgroundColor: "#fff",
     margin: 10,
+    backgroundColor: "#f5f5f5",
     borderRadius: 8,
+    padding: 10,
     alignItems: "center",
   },
-  productImage: {
-    width: "100%",
-    height: 200,
-    resizeMode: "cover",
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-  },
-  productTitle: {
-    fontWeight: "bold",
-    marginTop: 10,
-  },
-  productPrice: {
-    color: "#e53935",
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  backIcon: {
-    left: 10,
-  },
+  productImage: { width: 120, height: 120, resizeMode: "cover", borderRadius: 6 },
+  productTitle: { fontSize: 14, fontWeight: "600", marginTop: 8, textAlign: "center" },
+  productPrice: { fontSize: 16, fontWeight: "bold", color: "#444", marginTop: 4 },
   originalPrice: {
-  textDecorationLine: "line-through",
-  color: "#888",
-  fontSize: 14,
-  fontWeight: "500",
-},
-discountedPrice: {
-  color: "#e53935",
-  fontSize: 16,
-  fontWeight: "bold",
-  marginTop: 2,
-},
-emptyContainer: {
-  alignItems: "center",
-  justifyContent: "center",
-  marginTop: 50,
-},
-
-emptyImage: {
-  width: 200,
-  height: 200,
-  marginBottom: 50,
-  resizeMode: "contain",
-  marginTop: 100,
-},
-
-emptyText: {
-  fontSize: 30,
-  color: "#000",
-  fontWeight: "bold",
-},
-
+    fontSize: 14,
+    textDecorationLine: "line-through",
+    color: "gray",
+  },
+  discountedPrice: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#d32f2f",
+  },
+  emptyContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  emptyImage: { width: 170, height: 170, marginBottom: 50 },
+  emptyText: { fontSize: 20, color: "gray" },
 });
 
 export default ResultOfSearch;

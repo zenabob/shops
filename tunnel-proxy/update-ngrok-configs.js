@@ -25,13 +25,13 @@ const apps = [
   {
     name: "shops_app_buyers_backend",
     path: "../shops_app_buyers/Backend/ngrok-url.js",
-    suffix: "shops_app_sellers", // might need renaming
+    suffix: "shops_app_sellers",
     type: "backend",
   },
   {
-    name: "shops_app_admin_backend", // ✅ NEW ENTRY
-    path: "../shops_app_Admin/Backend/ngrok-url.js", // ✅ your admin backend path
-    suffix: "shops_app_Admin", // ✅ same as frontend to match routing if needed
+    name: "shops_app_admin_backend",
+    path: "../shops_app_Admin/Backend/ngrok-url.js",
+    suffix: "shops_app_Admin",
     type: "backend",
   },
 ];
@@ -43,11 +43,14 @@ async function getNgrokTunnelUrl() {
     try {
       const res = await axios.get(`http://127.0.0.1:${port}/api/tunnels`);
       const httpsTunnel = res.data.tunnels.find(
-        (tunnel) => tunnel.proto === "https" && tunnel.public_url.includes("ngrok")
+        (tunnel) =>
+          tunnel.proto === "https" && tunnel.public_url.includes("ngrok")
       );
       if (httpsTunnel) return httpsTunnel.public_url;
     } catch (err) {
-      console.warn(`⚠️ Failed to connect to ngrok on port ${port}: ${err.message}`);
+      console.warn(
+        `Failed to connect to ngrok on port ${port}: ${err.message}`
+      );
     }
   }
   return null;
@@ -57,7 +60,7 @@ async function updateNgrokUrls() {
   const ngrokUrl = await getNgrokTunnelUrl();
 
   if (!ngrokUrl) {
-    console.error("❌ No valid ngrok HTTPS tunnel found on any port.");
+    console.error("No valid ngrok HTTPS tunnel found on any port.");
     return;
   }
 
@@ -80,7 +83,7 @@ module.exports = {
     }
 
     fs.writeFileSync(fullPath, content, "utf-8");
-    console.log(`✅ Updated ${suffix} config at ${configPath}`);
+    console.log(`Updated ${suffix} config at ${configPath}`);
   });
 }
 

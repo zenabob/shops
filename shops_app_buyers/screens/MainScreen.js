@@ -27,21 +27,25 @@ import {API_BASE_URL} from "../config";
 const screenWidth = Dimensions.get("window").width;
 
 const MainScreen = () => {
-  const [covers, setCovers] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [userId, setUserId] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState("ALL");
-
   const navigation = useNavigation();
 
-  // Modal states
+  // State variables
+  const [covers, setCovers] = useState([]); // Random shop cover images
+  const [products, setProducts] = useState([]); // All products
+  const [activeIndex, setActiveIndex] = useState(0); // Active slider index
+  const [userId, setUserId] = useState(null); // Logged-in user ID
+
+  const [selectedCategory, setSelectedCategory] = useState("ALL"); // Category filter
+
+  // Modal and product selection
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedProductDetails, setSelectedProductDetails] = useState(null);
   const [selectedMainImage, setSelectedMainImage] = useState("");
   const [selectedColorName, setSelectedColorName] = useState("");
   const [selectedColorImages, setSelectedColorImages] = useState([]);
   const [selectedSize, setSelectedSize] = useState(null);
+
+  // Search functionality
   const [searchText, setSearchText] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
@@ -393,7 +397,6 @@ const MainScreen = () => {
                     onSubmitEditing={() => {
   const trimmed = searchText.trim().toLowerCase();
 
-  // 1. تحقق من وجود محل بالاسم
   const matchedShop = suggestions.find(
     (s) => s.type === "shop" && s.name.toLowerCase() === trimmed
   );
