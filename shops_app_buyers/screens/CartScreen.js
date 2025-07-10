@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Alert,
   Animated,
+  ScrollView,
 } from "react-native";
 import axios from "axios";
 import { useRoute, useNavigation } from "@react-navigation/native";
@@ -566,29 +567,32 @@ else if (item.quantity > availableStock) {
         ListFooterComponent={<View style={{ height: 120 }} />}
       />
       {soldOutItems.length > 0 && (
-        <View style={{ marginTop: 30, paddingHorizontal: 15 }}>
-          <Text style={{ fontSize: 16, fontWeight: "bold", color: "red" }}>
-            Sold Out Items
+  <View style={{marginTop:-30,  maxHeight: 250, paddingHorizontal: 10,marginBottom: 20 }}>
+    <Text style={{ fontSize: 16, fontWeight: "bold", color: "red", marginBottom: 20 , marginTop:-30 }}>
+      Sold Out Items
+    </Text>
+    <ScrollView>
+      {soldOutItems.map((item, index) => (
+        <View
+          key={index}
+          style={{
+            marginBottom: 10,
+            backgroundColor: "#fdd",
+            padding: 10,
+            borderRadius: 10,
+          }}
+        >
+          <Text style={{ fontWeight: "bold" }}>{item.title}</Text>
+          <Text style={{ color: "#555" }}>
+            Color: {item.selectedColor} | Size: {item.selectedSize}
           </Text>
-          {soldOutItems.map((item, index) => (
-            <View
-              key={index}
-              style={{
-                marginTop: 10,
-                backgroundColor: "#fdd",
-                padding: 10,
-                borderRadius: 10,
-              }}
-            >
-              <Text style={{ fontWeight: "bold" }}>{item.title}</Text>
-              <Text style={{ color: "#555" }}>
-                Color: {item.selectedColor} | Size: {item.selectedSize}
-              </Text>
-              <Text style={{ color: "red" }}>Out of stock</Text>
-            </View>
-          ))}
+          <Text style={{ color: "red" }}>Out of stock</Text>
         </View>
-      )}
+      ))}
+    </ScrollView>
+  </View>
+)}
+
       <View style={styles.summaryContainer}>
         <TouchableOpacity
           onPress={handleCheckout}

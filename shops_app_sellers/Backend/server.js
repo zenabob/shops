@@ -58,7 +58,6 @@ const shopSchema = new mongoose.Schema({
               sizes: [{ size: String, stock: Number }],
             },
           ],
-          sizes: [{ size: String, stock: Number }],
           offer: {
             discountPercentage: Number,
             expiresAt: Date,
@@ -906,6 +905,7 @@ app.get("/public/search-suggestions", async (req, res) => {
           type: "shop",
           name: shop.shopName,
           shopId: shop._id,
+          status: shop.status,
         });
       }
     }
@@ -926,6 +926,7 @@ app.get("/public/search-suggestions", async (req, res) => {
               type: "category",
               name: category.name,
               shopId: shop._id,
+              status: shop.status,
             });
           }
         }
@@ -944,6 +945,7 @@ app.get("/public/search-suggestions", async (req, res) => {
               name: product.title,
               productId: product._id,
               shopId: shop._id,
+              status: shop.status
             });
           }
         }
@@ -969,6 +971,7 @@ app.get("/public/search-suggestions", async (req, res) => {
                   productName: product.title,
                   productId: product._id,
                   shopId: shop._id,
+                  status: shop.status
                 });
               }
             }
@@ -988,6 +991,7 @@ app.get("/public/search-suggestions", async (req, res) => {
                     productName: product.title,
                     productId: product._id,
                     shopId: shop._id,
+                    status: shop.status
                   });
                 }
               }

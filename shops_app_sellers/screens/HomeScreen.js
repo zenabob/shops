@@ -95,8 +95,20 @@ const HomeScreen = () => {
         if (data.field && data.message) {
           setErrors((prev) => ({ ...prev, [data.field]: data.message }));
         } else {
-          setErrors({ general: "Login failed. Please try again." });
-        }
+  const errorMsg = data.message || "Unknown error";
+
+  if (errorMsg.toLowerCase().includes("email")) {
+    setErrors({ email: errorMsg, password: "" });
+  } else if (errorMsg.toLowerCase().includes("password")) {
+    setErrors({ email: "", password: errorMsg });
+  } else if (data.status === "pending") {
+    // Special case for pending approval
+    Alert.alert("Pending Approval", errorMsg);
+  } else {
+    // Any other generic error
+    Alert.alert("Login Failed", errorMsg);
+  }
+}
       }
     } catch (error) {
       console.error("Connection error:", error);

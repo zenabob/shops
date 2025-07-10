@@ -100,7 +100,10 @@ const MainScreen = () => {
       );
       const data = await res.json();
 
-      const shops = data.filter((d) => d.type === "shop");
+      const shops = data.filter(
+  (d) => d.type === "shop" && d.status === "approved"
+);
+
       const categories = data.filter((d) => d.type === "category");
       const products = data.filter((d) => d.type === "product");
       const colors = data.filter((d) => d.type === "color");

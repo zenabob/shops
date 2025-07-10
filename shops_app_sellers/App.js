@@ -19,15 +19,34 @@ import Offer from './screens/Offer'
 import ShopOrdersScreen from './screens/ShopOrders';
 import NotificationsScreen from './screens/NotificationsScreen';
 import DashboardScreen from './screens/DashboardScreen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 
 function MainDrawerWrapper({ route }) {
- const { userId, shopId } = route.params;
-  console.log("🧩 MainDrawerWrapper - userId:", userId); 
+  const [userId, setUserId] = useState(null);
+  const [shopId, setShopId] = useState(null);
+
+  useEffect(() => {
+    const loadParams = async () => {
+      const storedUserId = await AsyncStorage.getItem("userId");
+      const storedShopId = await AsyncStorage.getItem("shopId");
+      const paramUserId = route?.params?.userId || storedUserId;
+      const paramShopId = route?.params?.shopId || storedShopId;
+
+      setUserId(paramUserId);
+      setShopId(paramShopId);
+    };
+
+    loadParams();
+  }, [route]);
+
+  if (!userId || !shopId) return null; // أو يمكن إظهار مؤشر تحميل
+
   return <MainDrawer userId={userId} shopId={shopId} />;
 }
+
 
 function MainDrawer({ userId, shopId }) {
   const navigation = useNavigation(); 

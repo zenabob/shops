@@ -55,6 +55,12 @@ const ProductDetails = ({
     }, 10000);
     return () => clearInterval(interval);
   }, []);
+  useEffect(() => {
+  if (visible) {
+    setLocalSelectedSize(null); // Reset size when modal is opened
+  }
+}, [visible]);
+
 
   useEffect(() => {
     const checkFavorite = async () => {

@@ -44,6 +44,7 @@ const ResultOfSearch = ({ route, navigation }) => {
     "tops": "women’s blouse",
     "top": "women’s blouse",
     "women dress": "dress",
+    "blouse": "women’s blouse",
   };
 
   const normalizePhrase = (input) => {
@@ -54,51 +55,62 @@ const ResultOfSearch = ({ route, navigation }) => {
     return foundKey ? phraseSynonyms[foundKey] : input;
   };
 
-  const fetchProducts = async () => {
-    try {
-      const url = shopId
-        ? `${SELLER_API_BASE_URL}/public/search-category-products?q=${categoryName}`
-        : `${SELLER_API_BASE_URL}/public/all-products`;
+ const fetchProducts = async () => {
+  try {
+    const url = shopId
+      ? `${SELLER_API_BASE_URL}/public/search-category-products?q=${categoryName}`
+      : `${SELLER_API_BASE_URL}/public/all-products`;
 
-      const res = await fetch(url);
-      const data = await res.json();
+    const res = await fetch(url);
+    const data = await res.json();
 
-      const normalizedSearch = normalizePhrase(categoryName);
-      const categoryNameLower = normalizedSearch.toLowerCase();
+    const normalizedSearch = normalizePhrase(categoryName);
+    const searchTerm = normalizedSearch.toLowerCase();
 
-      const isExactCategoryMatch = data.some(
-        (p) => p.categoryName?.toLowerCase() === categoryNameLower
+    const hasStock = (product) =>
+      product.colors?.some((color) =>
+        color.sizes?.some((s) => s.stock > 0)
       );
 
-      if (isExactCategoryMatch) {
-        const exactCategoryProducts = data.filter(
-          (p) => p.categoryName?.toLowerCase() === categoryNameLower
-        );
-        setProducts(exactCategoryProducts);
-        return;
-      }
+    // 1️⃣ تصنيف
+    let matchedProducts = data.filter(
+      (product) =>
+        product.categoryName?.toLowerCase() === searchTerm
+    );
 
-      const filtered = data.filter((product) => {
-        const productCategory = product.categoryName?.toLowerCase().replace(/[’']/g, "");
-        const productTitle = product.title?.toLowerCase().replace(/[’']/g, "");
-        return (
-          productCategory === categoryNameLower ||
-          productTitle.includes(categoryNameLower) ||
-          productCategory.includes(categoryNameLower)
-        );
-      });
-
-      const availableProducts = filtered.filter((product) =>
+    // 2️⃣ إذا لا يوجد، نحاول بالألوان
+    if (matchedProducts.length === 0) {
+      matchedProducts = data.filter((product) =>
         product.colors?.some((color) =>
-          color.sizes?.some((s) => s.stock > 0)
+          color.name?.toLowerCase().includes(searchTerm)
         )
       );
-
-      setProducts(availableProducts);
-    } catch (err) {
-      console.error("❌ Error fetching search result products", err);
     }
-  };
+
+    // 3️⃣ إذا لا يوجد، نحاول بأسماء المتاجر
+    if (matchedProducts.length === 0) {
+      matchedProducts = data.filter((product) =>
+        product.shopId?.shopName?.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // 4️⃣ إذا لا يوجد، نحاول بعنوان المنتج
+    if (matchedProducts.length === 0) {
+      matchedProducts = data.filter((product) =>
+        product.title?.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // 5️⃣ تصفية فقط المنتجات اللي فيها stock
+    const availableProducts = matchedProducts.filter(hasStock);
+
+    setProducts(availableProducts);
+  } catch (err) {
+    console.error("❌ Error fetching search result products", err);
+  }
+};
+
+
 
   const handleAddToCart = () => {
     Alert.alert("Product added to cart");

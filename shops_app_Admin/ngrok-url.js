@@ -1,3 +1,3 @@
 // Auto-generated ngrok config for shops_app_Admin
-export const NGROK_URL = "https://46c5ab4d6631.ngrok.app";
+export const NGROK_URL = "https://c65d1aa6e3c2.ngrok.app";
 export const API_BASE_URL = `${NGROK_URL}/shops_app_Admin`;
