@@ -294,7 +294,7 @@ const navigation = useNavigation();
       );
       return res.data.url; // must be a valid image URL
     } catch (err) {
-      console.error("❌ Error uploading image:", err);
+      console.error(" Error uploading image:", err);
       return null;
     }
   };
@@ -310,7 +310,7 @@ const navigation = useNavigation();
       if (!result.canceled) {
         const uri = result.assets[0].uri;
 
-        const uploadedUrl = await uploadColorImage(uri); // Reuse your existing function
+        const uploadedUrl = await uploadColorImage(uri); 
 
         if (!uploadedUrl) {
           Alert.alert("Failed to upload preview image");
@@ -702,7 +702,7 @@ const navigation = useNavigation();
 
             await fetchCategoriesWithProducts();
           } catch (err) {
-            console.error("❌ Error saving added image:", err);
+            console.error(" Error saving added image:", err);
             Alert.alert("Failed to save image");
           }
         }
@@ -767,7 +767,7 @@ const navigation = useNavigation();
       const existing = new Set(newColor.images);
       const filtered = validUploads.filter((url) => !existing.has(url));
 
-      console.log("✅ Filtered valid uploaded image URLs:", filtered);
+      console.log(" Filtered valid uploaded image URLs:", filtered);
 
       setNewColor((prev) => ({
         ...prev,
@@ -931,7 +931,7 @@ const navigation = useNavigation();
         sizes: [],
         offer: {
           discountPercentage: 0,
-          expiresAt: "", // أو new Date().toISOString()
+          expiresAt: "", 
         },
       });
 
@@ -1246,16 +1246,6 @@ const navigation = useNavigation();
                 </Pressable>
               </Modal>
 
-              {/* {showCategoryInput && (
-                <TextInput
-                  style={styles.categoryInput}
-                  placeholder="Enter category name"
-                  placeholderTextColor="#999"
-                  value={newCategory}
-                  onChangeText={setNewCategory}
-                  onSubmitEditing={handleAddCategory}
-                />
-              )} */}
               {categories.length > 0 && (
                 <View style={styles.categoryList}>
                   {categories.map((category, index) => (
@@ -1555,7 +1545,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginVertical: 15,
     color: "#000", // text color
-    placeholderTextColor: "#999", // add this in JSX instead!
+    placeholderTextColor: "#999", 
   },
 
   categoryList: {

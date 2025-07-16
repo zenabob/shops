@@ -19,7 +19,6 @@ import { Image as ExpoImage } from 'expo-image';
 const screenWidth = Dimensions.get("window").width;
 
 const Offer = ({ userId, navigation }) => {
-  console.log("💡 Offer Screen - userId:", userId); // ADD THIS
   const [products, setProducts] = useState([]);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [applyToAll, setApplyToAll] = useState(false);
@@ -35,7 +34,7 @@ const Offer = ({ userId, navigation }) => {
     if (id) {
       fetchAllProducts(id);
     } else {
-      console.warn("⚠️ No userId found in storage.");
+      console.warn(" No userId found in storage.");
     }
   };
   loadUserId();
@@ -132,7 +131,7 @@ const Offer = ({ userId, navigation }) => {
         )
       );
   
-      Alert.alert("✅ Offer Applied Successfully", "", [
+      Alert.alert(" Offer Applied Successfully", "", [
         {
           text: "OK",
           onPress: () => {
@@ -150,7 +149,7 @@ const Offer = ({ userId, navigation }) => {
       fetchAllProducts();
     } catch (err) {
       console.error("Error applying offer:", err);
-      Alert.alert("❌ Failed", "Could not apply the offer");
+      Alert.alert(" Failed", "Could not apply the offer");
     }
   };
   
@@ -176,7 +175,7 @@ const Offer = ({ userId, navigation }) => {
         style={styles.selectAllBtn}
       >
         <Text style={styles.selectAllText}>
-          {applyToAll ? "✓ All Products Selected" : "Select All Products"}
+          {applyToAll ? "All Products Selected" : "Select All Products"}
         </Text>
       </TouchableOpacity>
 

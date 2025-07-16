@@ -11,7 +11,7 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { Image} from 'expo-image';
+import { Image } from "expo-image";
 
 import { SELLER_API_BASE_URL } from "../seller-api";
 
@@ -22,7 +22,7 @@ import ProductDetails from "../modals/ProductDetails";
 import { Pressable } from "react-native";
 import SplitCircleTwoImages from "../components/SplitCircleTwoImages";
 import SplitCircleThreeImages from "../components/SplitCircleThreeImages";
-import {API_BASE_URL} from "../config";
+import { API_BASE_URL } from "../config";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -51,29 +51,26 @@ const MainScreen = () => {
   const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
 
   const fetchData = async () => {
-  try {
-    const userId = await AsyncStorage.getItem("userId");
-    setUserId(userId);
+    try {
+      const userId = await AsyncStorage.getItem("userId");
+      setUserId(userId);
 
-    const res = await fetch(`${SELLER_API_BASE_URL}/public/all-products`);
-    const data = await res.json();
-    setProducts(data.length > 0 ? data : []);
+      const res = await fetch(`${SELLER_API_BASE_URL}/public/all-products`);
+      const data = await res.json();
+      setProducts(data.length > 0 ? data : []);
 
-    // ✅ Preload all MainImage URIs for better performance
-    const imageList = data
-      .filter((item) => typeof item.MainImage === "string")
-      .map((item) => ({
-        uri: item.MainImage.startsWith("http")
-          ? item.MainImage
-          : `${SELLER_API_BASE_URL}${item.MainImage}`,
-      }));
-
-
-  } catch (error) {
-    console.error("❌ Error fetching all products:", error);
-  }
-};
-
+      // Preload all MainImage URIs for better performance
+      const imageList = data
+        .filter((item) => typeof item.MainImage === "string")
+        .map((item) => ({
+          uri: item.MainImage.startsWith("http")
+            ? item.MainImage
+            : `${SELLER_API_BASE_URL}${item.MainImage}`,
+        }));
+    } catch (error) {
+      console.error("Error fetching all products:", error);
+    }
+  };
 
   const fetchCovers = async () => {
     try {
@@ -81,7 +78,7 @@ const MainScreen = () => {
       const data = await res.json();
       setCovers(data);
     } catch (error) {
-      console.error("❌ Error fetching covers:", error);
+      console.error(" Error fetching covers:", error);
     }
   };
   const fetchSuggestions = async (text) => {
@@ -101,8 +98,8 @@ const MainScreen = () => {
       const data = await res.json();
 
       const shops = data.filter(
-  (d) => d.type === "shop" && d.status === "approved"
-);
+        (d) => d.type === "shop" && d.status === "approved"
+      );
 
       const categories = data.filter((d) => d.type === "category");
       const products = data.filter((d) => d.type === "product");
@@ -127,7 +124,7 @@ const MainScreen = () => {
 
       setSuggestions(sorted);
     } catch (error) {
-      console.error("❌ Error fetching suggestions:", error);
+      console.error("Error fetching suggestions:", error);
       setSuggestions([]);
     } finally {
       setIsFetchingSuggestions(false);
@@ -151,7 +148,6 @@ const MainScreen = () => {
         shopId: suggestion.shopId || null,
         shopName: suggestion.name,
         userId,
-
       });
     } else if (suggestion.type === "category") {
       navigation.navigate("ResultOfSearch", {
@@ -207,51 +203,45 @@ const MainScreen = () => {
       setSelectedSize(null);
       setShowDetailModal(true);
     } catch (error) {
-      console.error("❌ Error fetching full product details:", error);
-      
+      console.error("Error fetching full product details:", error);
+
       Alert.alert("Failed to load product details.");
     }
   };
 
   const handleAddToCart = async (cartItem) => {
-  try {
-    if (!userId) {
-      Alert.alert("User not logged in");
-      return;
-    }
+    try {
+      if (!userId) {
+        Alert.alert("User not logged in");
+        return;
+      }
 
-    // ✅ Add offer data if it exists and is still valid
-    let offerData = null;
-    if (
-      cartItem.offer &&
-      new Date(cartItem.offer.expiresAt) > new Date()
-    ) {
-      offerData = cartItem.offer;
-    }
+      // Add offer data if it exists and is still valid
+      let offerData = null;
+      if (cartItem.offer && new Date(cartItem.offer.expiresAt) > new Date()) {
+        offerData = cartItem.offer;
+      }
 
-    const response = await fetch(
-      `${API_BASE_URL}/profile/${userId}/cart`,
-      {
+      const response = await fetch(`${API_BASE_URL}/profile/${userId}/cart`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...cartItem,
-          offer: offerData, 
+          offer: offerData,
         }),
-      }
-    );
+      });
 
-    const text = await response.text();
-    if (response.ok) {
-      Alert.alert("Product added to cart!");
-    } else {
-      Alert.alert("Error: " + text);
+      const text = await response.text();
+      if (response.ok) {
+        Alert.alert("Product added to cart!");
+      } else {
+        Alert.alert("Error: " + text);
+      }
+    } catch (err) {
+      console.error("Error adding to cart:", err);
+      Alert.alert("Something went wrong");
     }
-  } catch (err) {
-    console.error("Error adding to cart:", err);
-    Alert.alert("Something went wrong");
-  }
-};
+  };
 
   const highlightMatch = (text, query) => {
     if (!query) return text;
@@ -300,8 +290,8 @@ const MainScreen = () => {
   return (
     <TouchableWithoutFeedback
       onPress={() => {
-        setSuggestions([]); //
-        Keyboard.dismiss(); //
+        setSuggestions([]);
+        Keyboard.dismiss();
       }}
     >
       <ImageBackground
@@ -327,18 +317,22 @@ const MainScreen = () => {
         )}
 
         {(suggestions.length > 0 || isFetchingSuggestions) && (
-  <View style={styles.suggestionsContainer}>
+          <View style={styles.suggestionsContainer}>
             <ScrollView
               style={{ maxHeight: 250 }}
               keyboardShouldPersistTaps="handled"
               nestedScrollEnabled={true}
               showsVerticalScrollIndicator={true}
             >
-             {suggestions.length === 0 && !isFetchingSuggestions && searchText.length >= 2 ? (
-  <View style={styles.noSuggestions}>
-    <Text style={styles.noSuggestionsText}>No suggestions found</Text>
-  </View>
-) :(
+              {suggestions.length === 0 &&
+              !isFetchingSuggestions &&
+              searchText.length >= 2 ? (
+                <View style={styles.noSuggestions}>
+                  <Text style={styles.noSuggestionsText}>
+                    No suggestions found
+                  </Text>
+                </View>
+              ) : (
                 suggestions.map((suggestion, index) => (
                   <TouchableOpacity
                     key={index}
@@ -398,47 +392,45 @@ const MainScreen = () => {
                     value={searchText}
                     onChangeText={fetchSuggestions}
                     onSubmitEditing={() => {
-  const trimmed = searchText.trim().toLowerCase();
+                      const trimmed = searchText.trim().toLowerCase();
 
-  const matchedShop = suggestions.find(
-    (s) => s.type === "shop" && s.name.toLowerCase() === trimmed
-  );
+                      const matchedShop = suggestions.find(
+                        (s) =>
+                          s.type === "shop" && s.name.toLowerCase() === trimmed
+                      );
 
-  if (matchedShop) {
-    navigation.navigate("ShopProfile", {
-      shopId: matchedShop.shopId || null,
-      shopName: matchedShop.name,
-      userId,
-    });
-    setSuggestions([]);
-    Keyboard.dismiss();
-    return;
-  }
+                      if (matchedShop) {
+                        navigation.navigate("ShopProfile", {
+                          shopId: matchedShop.shopId || null,
+                          shopName: matchedShop.name,
+                          userId,
+                        });
+                        setSuggestions([]);
+                        Keyboard.dismiss();
+                        return;
+                      }
 
-  // 2. تحقق من وجود منتج بالاسم
-  const matchedProduct = products.find(
-    (p) => p.title.toLowerCase() === trimmed
-  );
+                      const matchedProduct = products.find(
+                        (p) => p.title.toLowerCase() === trimmed
+                      );
 
-  if (matchedProduct) {
-    handleProductPress(matchedProduct);
-    setSuggestions([]);
-    Keyboard.dismiss();
-    return;
-  }
+                      if (matchedProduct) {
+                        handleProductPress(matchedProduct);
+                        setSuggestions([]);
+                        Keyboard.dismiss();
+                        return;
+                      }
 
-  // 3. إذا لم يكن محل أو منتج، نفذ البحث العادي
-  if (trimmed.length > 0) {
-    navigation.navigate("ResultOfSearch", {
-      shopId: null,
-      categoryName: searchText,
-      userId: userId,
-    });
-    setSuggestions([]);
-    Keyboard.dismiss();
-  }
-}}
-
+                      if (trimmed.length > 0) {
+                        navigation.navigate("ResultOfSearch", {
+                          shopId: null,
+                          categoryName: searchText,
+                          userId: userId,
+                        });
+                        setSuggestions([]);
+                        Keyboard.dismiss();
+                      }
+                    }}
                     returnKeyType="search"
                   />
                 </View>
@@ -492,15 +484,13 @@ const MainScreen = () => {
                     activeOpacity={0.8}
                   >
                     <Image
- source={{
-    uri: shop.cover?.startsWith("http")
-      ? shop.cover
-      : `${SELLER_API_BASE_URL}${shop.cover}`,
- 
-  }}
-  style={styles.sliderImage}
-/>
-
+                      source={{
+                        uri: shop.cover?.startsWith("http")
+                          ? shop.cover
+                          : `${SELLER_API_BASE_URL}${shop.cover}`,
+                      }}
+                      style={styles.sliderImage}
+                    />
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -590,7 +580,7 @@ const MainScreen = () => {
                         } else if (name === "kid's") {
                           setSelectedCategory("kid's");
                         } else {
-                          setSelectedCategory(name); // مثل dress, blouse, skirt, shirt
+                          setSelectedCategory(name); 
                         }
                       }}
                     >
@@ -606,22 +596,18 @@ const MainScreen = () => {
                           image2={item.img2}
                         />
                       ) : (
-  <Image
-  source={
-    typeof item.img === "string"
-      ? {
-          uri: item.img.startsWith("http")
-            ? item.img
-            : `${SELLER_API_BASE_URL}${item.img}`,
-          
-        }
-      : item.img
-  }
-  style={styles.categoryImage}
-/>
-
-
-
+                        <Image
+                          source={
+                            typeof item.img === "string"
+                              ? {
+                                  uri: item.img.startsWith("http")
+                                    ? item.img
+                                    : `${SELLER_API_BASE_URL}${item.img}`,
+                                }
+                              : item.img
+                          }
+                          style={styles.categoryImage}
+                        />
                       )}
                     </TouchableOpacity>
                     <Text
@@ -653,18 +639,16 @@ const MainScreen = () => {
               style={styles.productCard}
             >
               <Image
-  source={{
-    uri:
-      typeof item.MainImage === "string"
-        ? item.MainImage.startsWith("http")
-          ? item.MainImage
-          : `${SELLER_API_BASE_URL}${item.MainImage}`
-        : "https://via.placeholder.com/150",
- 
-  }}
-  style={styles.productImage}
-/>
-
+                source={{
+                  uri:
+                    typeof item.MainImage === "string"
+                      ? item.MainImage.startsWith("http")
+                        ? item.MainImage
+                        : `${SELLER_API_BASE_URL}${item.MainImage}`
+                      : "https://via.placeholder.com/150",
+                }}
+                style={styles.productImage}
+              />
 
               <Text numberOfLines={1} style={styles.productTitle}>
                 {item.title}

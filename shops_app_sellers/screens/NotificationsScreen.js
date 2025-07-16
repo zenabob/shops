@@ -32,7 +32,7 @@ const NotificationsScreen = ({ route, shopId, onUpdateCount }) => {
       );
       setNotifications(res.data);
     } catch (error) {
-      console.error("❌ Error fetching notifications:", error);
+      console.error("Error fetching notifications:", error);
       Alert.alert("Error", "Failed to load notifications.");
     } finally {
       setLoading(false);
@@ -51,14 +51,14 @@ const NotificationsScreen = ({ route, shopId, onUpdateCount }) => {
 onUpdateCount(prev => Math.max(0, prev - 1));
       
     } catch (error) {
-      console.error("❌ Error marking as read:", error);
+      console.error(" Error marking as read:", error);
       Alert.alert("Error", "Could not mark notification as read.");
     }
   };
 
   const renderNotification = ({ item }) => {
   const productTitle = item.productTitle  || "Unknown Product";
-const messageText = `Product: ${productTitle} in color ${item.color}, size ${item.size} is now sold out. Please update the stock.`;
+  const messageText = `Product: ${productTitle} in color ${item.color}, size ${item.size} is now sold out. Please update the stock.`;
 
 
   return (

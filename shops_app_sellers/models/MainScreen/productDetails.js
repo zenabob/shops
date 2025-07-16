@@ -136,7 +136,7 @@ const ProductDetails = ({
                         ];
 
                   if (fullImage) {
-                    // ✅ Show original image in modal
+                    // Show original image in modal
                     setFullImageModalUrl(fullImage); // create state for this
                     setShowFullImageModal(true);
                   }

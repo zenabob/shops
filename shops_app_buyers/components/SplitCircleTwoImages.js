@@ -15,17 +15,14 @@ const SplitCircleTwoImages = ({ image1, image2, size = 70 }) => {
         },
       ]}
     >
-      {/* نصف اليسار */}
       <View style={[styles.half, { left: 0 }]}>
         <Image source={image1} style={styles.image} />
       </View>
 
-      {/* نصف اليمين */}
       <View style={[styles.half, { right: 0 }]}>
         <Image source={image2} style={styles.image} />
       </View>
 
-      {/* الخط الفاصل في النص */}
       <View style={styles.divider} />
     </View>
   );

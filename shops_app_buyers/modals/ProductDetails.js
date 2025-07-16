@@ -9,9 +9,9 @@ import {
   ScrollView,
 } from "react-native";
 import axios from "axios";
-import {API_BASE_URL} from "../config";
+import { API_BASE_URL } from "../config";
 import { SELLER_API_BASE_URL } from "../seller-api";
-import { Image as ExpoImage } from 'expo-image';
+import { Image as ExpoImage } from "expo-image";
 
 const ProductDetails = ({
   visible,
@@ -56,19 +56,16 @@ const ProductDetails = ({
     return () => clearInterval(interval);
   }, []);
   useEffect(() => {
-  if (visible) {
-    setLocalSelectedSize(null); // Reset size when modal is opened
-  }
-}, [visible]);
-
+    if (visible) {
+      setLocalSelectedSize(null); // Reset size when modal is opened
+    }
+  }, [visible]);
 
   useEffect(() => {
     const checkFavorite = async () => {
       if (!userId || !selectedProductDetails?._id) return;
       try {
-        const res = await axios.get(
-          `${API_BASE_URL}/user/${userId}/favorites`
-        );
+        const res = await axios.get(`${API_BASE_URL}/user/${userId}/favorites`);
         const found = res.data.find(
           (item) => item.productId === selectedProductDetails._id
         );
@@ -89,7 +86,7 @@ const ProductDetails = ({
             productId: selectedProductDetails._id,
           });
         } catch (error) {
-          console.error("❌ Error registering view:", error);
+          console.error("Error registering view:", error);
         }
       }
     };
@@ -157,14 +154,16 @@ const ProductDetails = ({
                     key={index}
                     onPress={() => setSelectedMainImage(img)}
                   >
-<ExpoImage
-  source={{
-    uri: img?.startsWith("http")
-      ? img
-      : `${SELLER_API_BASE_URL}${img.startsWith("/") ? "" : "/"}${img}`,
-  }}
-  style={styles.galleryImage}
-/>
+                    <ExpoImage
+                      source={{
+                        uri: img?.startsWith("http")
+                          ? img
+                          : `${SELLER_API_BASE_URL}${
+                              img.startsWith("/") ? "" : "/"
+                            }${img}`,
+                      }}
+                      style={styles.galleryImage}
+                    />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -172,14 +171,15 @@ const ProductDetails = ({
           <View style={styles.detailContent}>
             {selectedMainImage && (
               <ExpoImage
-  source={{
-    uri: selectedMainImage?.startsWith("http")
-      ? selectedMainImage
-      : `${SELLER_API_BASE_URL}${selectedMainImage.startsWith("/") ? "" : "/"}${selectedMainImage}`,
-  }}
-  style={styles.mainAlertImage}
-/>
-
+                source={{
+                  uri: selectedMainImage?.startsWith("http")
+                    ? selectedMainImage
+                    : `${SELLER_API_BASE_URL}${
+                        selectedMainImage.startsWith("/") ? "" : "/"
+                      }${selectedMainImage}`,
+                }}
+                style={styles.mainAlertImage}
+              />
             )}
 
             <Text style={styles.productName} numberOfLines={9}>
@@ -225,14 +225,15 @@ const ProductDetails = ({
                   }}
                 >
                   <ExpoImage
-  source={{
-    uri: c.previewImage?.startsWith("http")
-      ? c.previewImage
-      : `${SELLER_API_BASE_URL}${c.previewImage.startsWith("/") ? "" : "/"}${c.previewImage}`,
-  }}
-  style={styles.colorPreview}
-/>
-
+                    source={{
+                      uri: c.previewImage?.startsWith("http")
+                        ? c.previewImage
+                        : `${SELLER_API_BASE_URL}${
+                            c.previewImage.startsWith("/") ? "" : "/"
+                          }${c.previewImage}`,
+                    }}
+                    style={styles.colorPreview}
+                  />
                 </TouchableOpacity>
               ))}
             </ScrollView>

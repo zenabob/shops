@@ -113,7 +113,7 @@ const OrdersScreen = () => {
         const updated = { ...prev };
         for (let shop in updated) {
           updated[shop] = updated[shop].map((order) =>
-            order._id === updatedOrder._id ? updatedOrder : order
+          order._id === updatedOrder._id ? updatedOrder : order
           );
         }
         return updated;
@@ -455,11 +455,11 @@ const OrdersScreen = () => {
                 key={option}
                 style={styles.modalOption}
                 onPress={() => {
-                  setStatusFilter(option); // حفظ الحالة
-                  setStatusListVisible(false); // إغلاق مودال الحالة
+                  setStatusFilter(option); 
+                  setStatusListVisible(false); 
                   setTimeout(() => {
-                    setFilterModalVisible(true); // إعادة فتح مودال الفلترة
-                  }, 300); // تأخير بسيط لإعادة الفتح بسلاسة
+                    setFilterModalVisible(true); 
+                  }, 300); 
                 }}
               >
                 <Text style={styles.modalText}>{option || "All"}</Text>
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   undoButton: {
-    backgroundColor: "#dc3545", // لون أحمر
+    backgroundColor: "#dc3545", 
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,

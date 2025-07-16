@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import axios from 'axios';
+import { InteractionManager } from 'react-native';
 import {
   VictoryLine,
   VictoryChart,
@@ -30,6 +31,7 @@ const ItemsSoldChart = ({ shopId, darkMode }) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [topLabel, setTopLabel] = useState('');
   const [maxPoint, setMaxPoint] = useState(null);
+  const cache = useRef({});
 
   const formatDate = (date) => {
     const d = new Date(date);
@@ -39,15 +41,24 @@ const ItemsSoldChart = ({ shopId, darkMode }) => {
   };
 
   const fetchData = async () => {
+    const dateKey = `${shopId}_${range}_${formatDate(selectedDate)}`;
+    if (cache.current[dateKey]) {
+      const cached = cache.current[dateKey];
+      setData(cached.data);
+      setTopLabel(cached.topLabel);
+      setMaxPoint(cached.maxPoint);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const dateParam = formatDate(selectedDate);
       const res = await axios.get(
         `${API_BASE_URL}/statistics/items-sold?shopId=${shopId}&range=${range}`
       );
 
       const filtered = res.data.filter((item) =>
-        item._id?.date?.startsWith(dateParam)
+        item._id?.date?.startsWith(formatDate(selectedDate))
       );
 
       let formatted = [];
@@ -92,20 +103,21 @@ const ItemsSoldChart = ({ shopId, darkMode }) => {
         });
       }
 
-      setData(formatted);
-
+      let label = 'No data';
+      let max = null;
       if (formatted.length > 0) {
-        const max = formatted.reduce((prev, curr) => (curr.y > prev.y ? curr : prev));
-        setTopLabel(
+        max = formatted.reduce((prev, curr) => (curr.y > prev.y ? curr : prev));
+        label =
           range === 'day'
             ? `Most sold hour: ${max.x} (${max.y} items)`
-            : `Most sold day: Day ${max.x} (${max.y} items)`
-        );
-        setMaxPoint(max);
-      } else {
-        setTopLabel('No data for selected date');
-        setMaxPoint(null);
+            : `Most sold day: Day ${max.x} (${max.y} items)`;
       }
+
+      cache.current[dateKey] = { data: formatted, topLabel: label, maxPoint: max };
+
+      setData(formatted);
+      setTopLabel(label);
+      setMaxPoint(max);
     } catch (err) {
       console.error('Error fetching data:', err);
     } finally {
@@ -114,15 +126,16 @@ const ItemsSoldChart = ({ shopId, darkMode }) => {
   };
 
   useEffect(() => {
-    fetchData();
+    const task = InteractionManager.runAfterInteractions(() => {
+      fetchData();
+    });
+    return () => task.cancel();
   }, [shopId, range, selectedDate]);
 
   const onDateChange = (event, date) => {
     if (date) setSelectedDate(date);
     setShowDatePicker(false);
   };
-
-  if (loading) return <ActivityIndicator style={{ marginTop: 20 }} />;
 
   return (
     <ScrollView
@@ -131,20 +144,25 @@ const ItemsSoldChart = ({ shopId, darkMode }) => {
         { backgroundColor: darkMode ? '#111' : '#fff' },
       ]}
     >
-      <Text style={[styles.title, { color: darkMode ? '#fff' : '#000' }]}>
-        Items Sold ({range === 'month' ? 'Monthly View' : 'Daily View'})
-      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Text style={[styles.title, { color: darkMode ? '#fff' : '#000' }]}>
+          Items Sold ({range === 'month' ? 'Monthly' : 'Daily'})
+        </Text>
+        {loading && (
+          <ActivityIndicator
+            size="small"
+            color={darkMode ? '#0af' : '#007AFF'}
+            style={{ marginLeft: 8 }}
+          />
+        )}
+      </View>
 
       <TouchableOpacity
-        style={[
-          styles.button,
-          { backgroundColor: darkMode ? '#444' : '#ddd' },
-        ]}
+        style={[styles.button, { backgroundColor: darkMode ? '#444' : '#ddd' }]}
         onPress={() => setShowDatePicker(true)}
       >
         <Text style={{ color: darkMode ? '#fff' : '#000' }}>
-          {range === 'month' ? 'Select Month' : 'Select Day'}:{' '}
-          {formatDate(selectedDate)}
+          {range === 'month' ? 'Select Month' : 'Select Day'}: {formatDate(selectedDate)}
         </Text>
       </TouchableOpacity>
 
@@ -157,133 +175,98 @@ const ItemsSoldChart = ({ shopId, darkMode }) => {
         />
       )}
 
-      {/* Chart */}
-      <VictoryChart
-        theme={VictoryTheme.material}
-        domainPadding={{ x: 40, y: 20 }}
-        padding={{ top: 20, bottom: 70, left: 60, right: 20 }}
-        containerComponent={<VictoryVoronoiContainer />}
-        width={350}
-        height={300}
-      >
-        <VictoryAxis
-          label="Time"
-          fixLabelOverlap
-          axisLabelComponent={
-            <VictoryLabel
-              dy={30}
-              style={{ fill: darkMode ? '#fff' : '#000' }}
-            />
-          }
-          style={{
-            tickLabels: {
-              angle: -45,
-              fontSize: 9,
-              fill: darkMode ? '#fff' : '#000',
-            },
-            axis: { stroke: darkMode ? '#ccc' : '#333' },
-            ticks: { stroke: darkMode ? '#ccc' : '#333' },
-          }}
-        />
-        <VictoryAxis
-          dependentAxis
-          label="Quantity"
-          axisLabelComponent={
-            <VictoryLabel
-              angle={-90}
-              dy={-40}
-              style={{ fill: darkMode ? '#fff' : '#000' }}
-            />
-          }
-          style={{
-            tickLabels: { fontSize: 10, fill: darkMode ? '#fff' : '#000' },
-            axis: { stroke: darkMode ? '#ccc' : '#333' },
-            ticks: { stroke: darkMode ? '#ccc' : '#333' },
-          }}
-        />
-        <VictoryLine
-          data={data}
-          interpolation="monotoneX"
-          labels={({ datum }) => datum.label}
-          style={{
-            data: {
-              stroke: '#007AFF',
-              strokeWidth: 2,
-            },
-          }}
-          labelComponent={
-            <VictoryTooltip
-              flyoutStyle={{
-                fill: darkMode ? '#222' : '#fff',
-                stroke: darkMode ? '#aaa' : '#ccc',
-              }}
+      {!loading && (
+        <>
+          <VictoryChart
+            theme={VictoryTheme.material}
+            domainPadding={{ x: 40, y: 20 }}
+            padding={{ top: 20, bottom: 70, left: 60, right: 20 }}
+            containerComponent={<VictoryVoronoiContainer />}
+            width={350}
+            height={300}
+          >
+            <VictoryAxis
+              label="Time"
+              axisLabelComponent={<VictoryLabel dy={30} style={{ fill: darkMode ? '#fff' : '#000' }} />}
               style={{
-                fill: darkMode ? '#fff' : '#000',
-                fontSize: 10,
+                tickLabels: {
+                  angle: -45,
+                  fontSize: 9,
+                  fill: darkMode ? '#fff' : '#000',
+                },
+                axis: { stroke: darkMode ? '#ccc' : '#333' },
+                ticks: { stroke: darkMode ? '#ccc' : '#333' },
               }}
             />
-          }
-        />
-
-        {/* نقاط الخط (scatter) لتفعيل الضغط عليها */}
-        <VictoryScatter
-          data={data}
-          size={({ datum }) =>
-            maxPoint && datum.x === maxPoint.x && datum.y === maxPoint.y
-              ? 6
-              : 3
-          }
-          style={{
-            data: {
-              fill: ({ datum }) =>
-                maxPoint && datum.x === maxPoint.x && datum.y === maxPoint.y
-                  ? '#FF5733' // نقطة الماكسيموم
-                  : darkMode
-                  ? '#0af'
-                  : '#007AFF',
-            },
-          }}
-          labels={({ datum }) => datum.label}
-          labelComponent={
-            <VictoryTooltip
-              flyoutStyle={{
-                fill: darkMode ? '#222' : '#fff',
-                stroke: darkMode ? '#aaa' : '#ccc',
-              }}
+            <VictoryAxis
+              dependentAxis
+              label="Quantity"
+              axisLabelComponent={<VictoryLabel angle={-90} dy={-40} style={{ fill: darkMode ? '#fff' : '#000' }} />}
               style={{
-                fill: darkMode ? '#fff' : '#000',
-                fontSize: 10,
+                tickLabels: { fontSize: 10, fill: darkMode ? '#fff' : '#000' },
+                axis: { stroke: darkMode ? '#ccc' : '#333' },
+                ticks: { stroke: darkMode ? '#ccc' : '#333' },
               }}
             />
-          }
-        />
-      </VictoryChart>
+            <VictoryLine
+              data={data}
+              interpolation="monotoneX"
+              labels={({ datum }) => datum.label}
+              style={{ data: { stroke: '#007AFF', strokeWidth: 2 } }}
+              labelComponent={
+                <VictoryTooltip
+                  flyoutStyle={{
+                    fill: darkMode ? '#222' : '#fff',
+                    stroke: darkMode ? '#aaa' : '#ccc',
+                  }}
+                  style={{ fill: darkMode ? '#fff' : '#000', fontSize: 10 }}
+                />
+              }
+            />
+            <VictoryScatter
+              data={data}
+              size={({ datum }) =>
+                maxPoint && datum.x === maxPoint.x && datum.y === maxPoint.y ? 6 : 3
+              }
+              style={{
+                data: {
+                  fill: ({ datum }) =>
+                    maxPoint && datum.x === maxPoint.x && datum.y === maxPoint.y
+                      ? '#FF5733'
+                      : darkMode
+                      ? '#0af'
+                      : '#007AFF',
+                },
+              }}
+              labels={({ datum }) => datum.label}
+              labelComponent={
+                <VictoryTooltip
+                  flyoutStyle={{
+                    fill: darkMode ? '#222' : '#fff',
+                    stroke: darkMode ? '#aaa' : '#ccc',
+                  }}
+                  style={{ fill: darkMode ? '#fff' : '#000', fontSize: 10 }}
+                />
+              }
+            />
+          </VictoryChart>
 
-      <Text
-        style={[styles.infoText, { color: darkMode ? '#ccc' : '#444' }]}
-      >
-        X Axis = {range === 'month' ? 'Day' : 'Hour'} of{' '}
-        {formatDate(selectedDate)}
-        {'\n'}
-        Y Axis = Quantity Sold
-      </Text>
+          <Text style={[styles.infoText, { color: darkMode ? '#ccc' : '#444' }]}>
+            X Axis = {range === 'month' ? 'Day' : 'Hour'} of {formatDate(selectedDate)}{"\n"}
+            Y Axis = Quantity Sold
+          </Text>
 
-      {topLabel && (
-        <Text
-          style={[styles.topLabel, { color: darkMode ? '#0af' : '#007AFF' }]}
-        >
-          {topLabel}
-        </Text>
+          {topLabel && (
+            <Text style={[styles.topLabel, { color: darkMode ? '#0af' : '#007AFF' }]}>
+              {topLabel}
+            </Text>
+          )}
+        </>
       )}
 
       <TouchableOpacity
-        style={[
-          styles.button,
-          { backgroundColor: darkMode ? '#0af' : '#007AFF' },
-        ]}
-        onPress={() =>
-          setRange((prev) => (prev === 'month' ? 'day' : 'month'))
-        }
+        style={[styles.button, { backgroundColor: darkMode ? '#0af' : '#007AFF' }]}
+        onPress={() => setRange((prev) => (prev === 'month' ? 'day' : 'month'))}
       >
         <Text style={styles.buttonText}>
           Switch to {range === 'month' ? 'Daily' : 'Monthly'} View

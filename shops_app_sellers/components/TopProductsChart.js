@@ -16,36 +16,12 @@ import {
 import { API_BASE_URL } from "../config";
 
 const COLORS = [
-  "#007AFF",
-  "#FF5733",
-  "#28A745",
-  "#FFC107",
-  "#6F42C1",
-  "#20C997",
-  "#FF33A1",
-  "#17A2B8",
-  "#E83E8C",
-  "#6610f2",
-  "#fd7e14",
-  "#6c757d",
-  "#343a40",
-  "#198754",
-  "#0d6efd",
-  "#dc3545",
-  "#fdc500",
-  "#00b4d8",
-  "#9d4edd",
-  "#3f37c9",
-  "#ff6f61",
-  "#00c49a",
-  "#e6194b",
-  "#911eb4",
-  "#46f0f0",
-  "#f032e6",
-  "#bcf60c",
-  "#fabebe",
-  "#008080",
-  "#e6beff",
+  "#007AFF", "#FF5733", "#28A745", "#FFC107", "#6F42C1",
+  "#20C997", "#FF33A1", "#17A2B8", "#E83E8C", "#6610f2",
+  "#fd7e14", "#6c757d", "#343a40", "#198754", "#0d6efd",
+  "#dc3545", "#fdc500", "#00b4d8", "#9d4edd", "#3f37c9",
+  "#ff6f61", "#00c49a", "#e6194b", "#911eb4", "#46f0f0",
+  "#f032e6", "#bcf60c", "#fabebe", "#008080", "#e6beff",
   "#9a6324",
 ];
 
@@ -68,9 +44,10 @@ const TopProductsChart = ({ shopId, darkMode }) => {
         const topFive = res.data.slice(0, 5);
 
         const formatted = topFive.map((item, index) => ({
-          x: item._id.length > 20 ? item._id.slice(0, 20) + "…" : item._id,
+          x: index + 1, 
           y: item.totalQuantity,
           fill: COLORS[index],
+          label: item._id.length > 20 ? item._id.slice(0, 20) + "…" : item._id,
           fullName: item._id,
         }));
 
@@ -80,13 +57,13 @@ const TopProductsChart = ({ shopId, darkMode }) => {
           percent: ((item.totalQuantity / total) * 100).toFixed(1),
         }));
 
-        // Fill up to 10 bars with tiny y value instead of 0
         while (formatted.length < 5) {
           const fillerIndex = formatted.length;
           formatted.push({
-            x: "—",
-            y: 0.01, 
+            x: fillerIndex + 1,
+            y: 0.01,
             fill: "#444",
+            label: "—",
             fullName: "No data",
           });
           percents.push({
@@ -104,6 +81,7 @@ const TopProductsChart = ({ shopId, darkMode }) => {
         setLoading(false);
       }
     };
+
     fetchData();
   }, [shopId]);
 
@@ -121,8 +99,8 @@ const TopProductsChart = ({ shopId, darkMode }) => {
           theme={VictoryTheme.material}
           domainPadding={20}
           horizontal
-          height={10 * 45 + 100}
-          padding={{ left: 100, right: 40, top: 20, bottom: 50 }}
+          height={5 * 45 + 100}
+          padding={{ left: 120, right: 40, top: 20, bottom: 50 }}
         >
           <VictoryAxis
             dependentAxis
@@ -146,7 +124,7 @@ const TopProductsChart = ({ shopId, darkMode }) => {
               labels: { fill: darkMode ? "#fff" : "#000", fontSize: 10 },
             }}
             labels={({ datum }) =>
-              `${datum.y > 0.1 ? datum.y : 0} (${
+              `${datum.label}\n${datum.y > 0.1 ? datum.y : 0} (${
                 percentages.find((p) => datum.fullName === p.name)?.percent
               }%)`
             }

@@ -22,7 +22,6 @@ mongoose
   .then(() => console.log("✅ MongoDB Connected"))
   .catch((err) => console.error("❌ MongoDB Error:", err));
 
-// ✅ Admin Schema داخل السيرفر
 const adminSchema = new mongoose.Schema({
   name: String,
   email: { type: String, required: true, unique: true },
@@ -123,10 +122,10 @@ if (status && status !== "All") {
       filter.createdAt = { $gte: start, $lte: end };
     }
 
-    // 🧠 Fetch all orders matching filters
+    // Fetch all orders matching filters
     let orders = await Order.find(filter).populate('shopId', 'shopName');
 
-    // 🧠 Filter by product title (client-side after fetch)
+    // Filter by product title (client-side after fetch)
     if (product) {
       orders = orders.filter((order) =>
         order.products.some((p) =>
@@ -135,21 +134,21 @@ if (status && status !== "All") {
       );
     }
 
-    // 🧠 Filter by shop name (after population)
+    // Filter by shop name (after population)
     if (shopName) {
       orders = orders.filter((order) =>
         order.shopId?.shopName?.toLowerCase().includes(shopName.toLowerCase())
       );
     }
 
-    // 🧠 Sort by createdAt
+    // Sort by createdAt
     if (sort === 'asc') {
       orders.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     } else {
       orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
-    // 🧠 Group orders by shop name
+    // Group orders by shop name
     const grouped = {};
     for (const order of orders) {
       const shop = order.shopId?.shopName || 'Unknown Shop';
@@ -183,7 +182,7 @@ app.put('/admin/orders/:id/deliver', async (req, res) => {
 
     res.json({ message: "Order marked as delivered", order: updatedOrder });
   } catch (err) {
-    console.error("❌ Failed to update order:", err);
+    console.error("Failed to update order:", err);
     res.status(500).json({ message: "Failed to update order" });
   }
 });
@@ -195,8 +194,8 @@ app.put('/admin/orders/:id/undo-deliver', async (req, res) => {
     const updatedOrder = await Order.findByIdAndUpdate(
       id,
       {
-        status: "Delivered to Admin",  // أو "Prepared" حسب منطقك
-        deliveredAt: null,             // إلغاء تاريخ تسليم الكوستمر
+        status: "Delivered to Admin",  
+        deliveredAt: null,             
       },
       { new: true }
     );
@@ -214,10 +213,10 @@ app.put('/admin/orders/:id/undo-deliver', async (req, res) => {
 
 app.get("/admin/shops", async (req, res) => {
   try {
-    const shops = await Shop.find({ status: "approved" }); // ✅ فقط الموافق عليها
+    const shops = await Shop.find({ status: "approved" }); 
     res.json(shops);
   } catch (err) {
-    console.error("❌ Error fetching shops:", err);
+    console.error("Error fetching shops:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -234,7 +233,7 @@ app.delete("/admin/shops/:shopId", async (req, res) => {
 
     res.json({ message: "Shop deleted successfully" });
   } catch (err) {
-    console.error("❌ Error deleting shop:", err);
+    console.error("Error deleting shop:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -261,7 +260,7 @@ app.get("/admin/pending-shops", async (req, res) => {
     const pendingShops = await Shop.find({ status: "pending" });
     res.json(pendingShops);
   } catch (err) {
-    console.error("❌ Error fetching pending shops:", err);
+    console.error(" Error fetching pending shops:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -270,24 +269,16 @@ app.delete("/admin/delete-shop/:shopId", async (req, res) => {
   const { shopId } = req.params;
 
   try {
-    // 1. حذف المحل من قاعدة البيانات
     await Shop.findByIdAndDelete(shopId);
-
-    // 2. حذف الطلبات المرتبطة بالمحل
     await Order.deleteMany({ shopId });
-
-    // 3. حذف الإشعارات المرتبطة بالمحل
     await Notification.deleteMany({ shopId });
-
-    // 4. إرسال طلب إلى سيرفر الكلاينت لحذف السلة والمفضلات
     const buyerResponse = await axios.delete(`${API_BASE_URL}/admin/delete-shop-data/${shopId}`);
-
     res.status(200).json({
       message: "Shop and all related data deleted from admin and client servers",
       clientResult: buyerResponse.data,
     });
   } catch (error) {
-    console.error("❌ Error deleting shop and related data:", error.message);
+    console.error("Error deleting shop and related data:", error.message);
     res.status(500).json({ error: "Failed to delete shop and related data." });
   }
 });
@@ -329,12 +320,12 @@ app.post("/admin/create", async (req, res) => {
 
     res.status(201).json({ message: "Admin created successfully" });
   } catch (err) {
-    console.error("❌ Error creating admin:", err);
+    console.error("Error creating admin:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });

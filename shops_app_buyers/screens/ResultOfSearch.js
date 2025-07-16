@@ -22,11 +22,16 @@ const ResultOfSearch = ({ route, navigation }) => {
   const [selectedColorImages, setSelectedColorImages] = useState([]);
   const [selectedSize, setSelectedSize] = useState(null);
 
-  useEffect(() => {
-    if (!results) fetchProducts();
+useEffect(() => {
+  if (!results) {
+    fetchProducts();
     const intervalId = setInterval(() => fetchProducts(), 10000);
     return () => clearInterval(intervalId);
-  }, []);
+  } else {
+    setProducts(results);
+  }
+}, []);
+
 
   const phraseSynonyms = {
     "women pants": "women’s bottom",
@@ -72,13 +77,11 @@ const ResultOfSearch = ({ route, navigation }) => {
         color.sizes?.some((s) => s.stock > 0)
       );
 
-    // 1️⃣ تصنيف
     let matchedProducts = data.filter(
       (product) =>
         product.categoryName?.toLowerCase() === searchTerm
     );
 
-    // 2️⃣ إذا لا يوجد، نحاول بالألوان
     if (matchedProducts.length === 0) {
       matchedProducts = data.filter((product) =>
         product.colors?.some((color) =>
@@ -87,26 +90,23 @@ const ResultOfSearch = ({ route, navigation }) => {
       );
     }
 
-    // 3️⃣ إذا لا يوجد، نحاول بأسماء المتاجر
     if (matchedProducts.length === 0) {
       matchedProducts = data.filter((product) =>
         product.shopId?.shopName?.toLowerCase().includes(searchTerm)
       );
     }
 
-    // 4️⃣ إذا لا يوجد، نحاول بعنوان المنتج
     if (matchedProducts.length === 0) {
       matchedProducts = data.filter((product) =>
         product.title?.toLowerCase().includes(searchTerm)
       );
     }
 
-    // 5️⃣ تصفية فقط المنتجات اللي فيها stock
     const availableProducts = matchedProducts.filter(hasStock);
 
     setProducts(availableProducts);
   } catch (err) {
-    console.error("❌ Error fetching search result products", err);
+    console.error("Error fetching search result products", err);
   }
 };
 

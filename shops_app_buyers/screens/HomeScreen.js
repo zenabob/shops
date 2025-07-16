@@ -184,7 +184,6 @@ const HomeScreen = () => {
   );
 };
 
-// 🖌️ All your style rules are here
 const styles = StyleSheet.create({
   background: {
     flex: 1,

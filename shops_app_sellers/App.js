@@ -42,7 +42,7 @@ function MainDrawerWrapper({ route }) {
     loadParams();
   }, [route]);
 
-  if (!userId || !shopId) return null; // أو يمكن إظهار مؤشر تحميل
+  if (!userId || !shopId) return null;
 
   return <MainDrawer userId={userId} shopId={shopId} />;
 }

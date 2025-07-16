@@ -14,9 +14,9 @@ import { ImageBackground } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import ProductDetails from "../modals/ProductDetails";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {API_BASE_URL} from "../config";
+import { API_BASE_URL } from "../config";
 import { SELLER_API_BASE_URL } from "../seller-api";
-import { Image as ExpoImage } from 'expo-image';
+import { Image as ExpoImage } from "expo-image";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -41,17 +41,17 @@ const CustomerShopProfileScreen = ({ route }) => {
   const [selectedSize, setSelectedSize] = useState(null); // ✅ أضف هذا
 
   const navigation = useNavigation();
-useEffect(() => {
-  fetchShopData();
-  fetchCategories();
-  fetchCategoriesWithProducts();
-  
-  const intervalId = setInterval(() => {
-    fetchCategoriesWithProducts(); // ✅ استخدم دالة موجودة فعلاً لتحديث المنتجات
-  }, 10000);
+  useEffect(() => {
+    fetchShopData();
+    fetchCategories();
+    fetchCategoriesWithProducts();
 
-  return () => clearInterval(intervalId);
-}, [shopId]);
+    const intervalId = setInterval(() => {
+      fetchCategoriesWithProducts();
+    }, 10000);
+
+    return () => clearInterval(intervalId);
+  }, [shopId]);
 
   const handleAddToCart = async (cartItem) => {
     try {
@@ -60,25 +60,22 @@ useEffect(() => {
         return;
       }
 
-      const response = await fetch(
-        `${API_BASE_URL}/profile/${userId}/cart`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            shopId: cartItem.shopId,
-            shopName: cartItem.shopName,
-            productId: cartItem.productId,
-            title: cartItem.title,
-            image: cartItem.image,
-            price: cartItem.price,
-            selectedColor: cartItem.selectedColor,
-            selectedSize: cartItem.selectedSize,
-          }),
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/profile/${userId}/cart`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shopId: cartItem.shopId,
+          shopName: cartItem.shopName,
+          productId: cartItem.productId,
+          title: cartItem.title,
+          image: cartItem.image,
+          price: cartItem.price,
+          selectedColor: cartItem.selectedColor,
+          selectedSize: cartItem.selectedSize,
+        }),
+      });
       const text = await response.text();
-      console.log("🔍 Raw response:", text);
+      console.log(" Raw response:", text);
 
       if (response.ok) {
         Alert.alert("Product added to cart!");
@@ -86,7 +83,7 @@ useEffect(() => {
         Alert.alert("Error: " + text);
       }
     } catch (err) {
-      console.error("❌ Error adding to cart:", err);
+      console.error(" Error adding to cart:", err);
       Alert.alert("Something went wrong");
     }
   };
@@ -138,24 +135,24 @@ useEffect(() => {
         />
       </TouchableOpacity>
       <ScrollView contentContainerStyle={styles.content}>
-<ExpoImage
-  source={{
-    uri: shopData.cover?.startsWith("http")
-      ? shopData.cover
-      : `${SELLER_API_BASE_URL}${shopData.cover}`,
-  }}
-  style={styles.cover}
-/>
+        <ExpoImage
+          source={{
+            uri: shopData.cover?.startsWith("http")
+              ? shopData.cover
+              : `${SELLER_API_BASE_URL}${shopData.cover}`,
+          }}
+          style={styles.cover}
+        />
 
         <View style={styles.logoContainer}>
-<ExpoImage
-  source={{
-    uri: shopData.logo?.startsWith("http")
-      ? shopData.logo
-      : `${SELLER_API_BASE_URL}${shopData.logo}`,
-  }}
-  style={styles.logo}
-/>
+          <ExpoImage
+            source={{
+              uri: shopData.logo?.startsWith("http")
+                ? shopData.logo
+                : `${SELLER_API_BASE_URL}${shopData.logo}`,
+            }}
+            style={styles.logo}
+          />
         </View>
 
         <Text style={styles.shopName}>{shopData.name}</Text>
@@ -164,7 +161,7 @@ useEffect(() => {
           <View key={category} style={styles.categorySection}>
             <Text style={styles.categoryTitle}>{category}</Text>
             {categories.length === 1 ? (
-              // 🟢 Grid with 2 columns
+              // Grid with 2 columns
               <View style={styles.gridWrapper}>
                 {(productsByCategory[category] || []).map((product, i) => (
                   <TouchableOpacity
@@ -184,13 +181,13 @@ useEffect(() => {
                     }}
                   >
                     <ExpoImage
-  source={{
-    uri: product.MainImage?.startsWith("http")
-      ? product.MainImage
-      : `${SELLER_API_BASE_URL}${product.MainImage}`,
-  }}
-  style={styles.productImage}
-/>
+                      source={{
+                        uri: product.MainImage?.startsWith("http")
+                          ? product.MainImage
+                          : `${SELLER_API_BASE_URL}${product.MainImage}`,
+                      }}
+                      style={styles.productImage}
+                    />
 
                     <Text style={styles.productTitle} numberOfLines={1}>
                       {product.title}
@@ -222,7 +219,7 @@ useEffect(() => {
                 ))}
               </View>
             ) : (
-              // 🟡 Horizontal scroll
+              // Horizontal scroll
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {(productsByCategory[category] || []).map((product, i) => (
                   <TouchableOpacity
@@ -243,13 +240,13 @@ useEffect(() => {
                     }}
                   >
                     <ExpoImage
-  source={{
-    uri: product.MainImage?.trim().startsWith("http")
-      ? product.MainImage.trim()
-      : `${SELLER_API_BASE_URL}${product.MainImage?.trim()}`,
-  }}
-  style={styles.productImage}
-/>
+                      source={{
+                        uri: product.MainImage?.trim().startsWith("http")
+                          ? product.MainImage.trim()
+                          : `${SELLER_API_BASE_URL}${product.MainImage?.trim()}`,
+                      }}
+                      style={styles.productImage}
+                    />
 
                     <Text style={styles.productTitle} numberOfLines={1}>
                       {product.title}
@@ -315,8 +312,8 @@ useEffect(() => {
           onAddToCart={handleAddToCart}
           shopId={shopId}
           userId={userId}
-          selectedSize={selectedSize} // ✅
-          setSelectedSize={setSelectedSize} // ✅
+          selectedSize={selectedSize} 
+          setSelectedSize={setSelectedSize} 
         />
       )}
     </View>

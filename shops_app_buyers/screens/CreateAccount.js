@@ -276,13 +276,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 10,
     backgroundColor: "white",
-    zIndex: 999, // <-- Add this
+    zIndex: 999,
   },
 
   picker: {
     width: "100%",
     color: "#000",
-    zIndex: 1000, // Add this line
+    zIndex: 1000, 
   },
 
   button: {

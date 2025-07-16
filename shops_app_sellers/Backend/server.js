@@ -24,8 +24,8 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch((err) => console.error("❌ MongoDB Error:", err));
+  .then(() => console.log(" MongoDB Connected"))
+  .catch((err) => console.error(" MongoDB Error:", err));
 
 // ======================
 // Schema
@@ -393,7 +393,7 @@ app.delete("/profile/:userId/category/:category", async (req, res) => {
 
     if (!user) return res.status(404).json({ message: "No user found" });
 
-    // ✅ This removes the category object from the array
+    // This removes the category object from the array
     const updatedCategories = user.categories.filter(
       (c) => c.name !== category
     );
@@ -405,7 +405,7 @@ app.delete("/profile/:userId/category/:category", async (req, res) => {
     const categoryNames = user.categories.map((c) => c.name);
     res.json(categoryNames);
   } catch (err) {
-    console.error("❌ Error deleting category:", err);
+    console.error(" Error deleting category:", err);
     res.status(500).json({ message: "Error deleting category" });
   }
 });
@@ -523,7 +523,7 @@ app.put(
       }
 
       if (updatedFields.colors) {
-        product.colors = JSON.parse(updatedFields.colors); // ✅ previewImage و images per color
+        product.colors = JSON.parse(updatedFields.colors); // previewImage و images per color
       }
 
       if (updatedFields.sizes) {
@@ -619,7 +619,7 @@ app.delete(
 
       res.json({ message: "Image deleted from color", updatedColor: color });
     } catch (err) {
-      console.error("❌ Error deleting color image:", err);
+      console.error("Error deleting color image:", err);
       res
         .status(500)
         .json({ message: "Server error deleting image from color" });
@@ -631,14 +631,13 @@ app.put(
   async (req, res) => {
     try {
       const { userId, category, productId } = req.params;
-      const { discountPercentage, expiresAt } = req.body; // ← استبدلي الأسماء هنا
+      const { discountPercentage, expiresAt } = req.body; 
 
       if (!discountPercentage || !expiresAt) {
         return res.status(400).json({ message: "Missing discount data" });
       }
 
-      const shop = await User.findById(userId); // ← استخدمي الموديل الصح
-
+      const shop = await User.findById(userId); 
       if (!shop) {
         return res.status(404).json({ message: "Shop not found4" });
       }
@@ -689,7 +688,7 @@ app.get("/public/shop/:shopId/products", async (req, res) => {
     ...category.toObject(),
     products: category.products.map((product) => ({
       ...product.toObject(),
-      shopId: shopId, // ✅ أضف shopId هنا
+      shopId: shopId, 
     })),
   }));
 
@@ -700,18 +699,15 @@ app.get("/public/shop/:shopId/product/:productId", async (req, res) => {
   try {
     const { shopId, productId } = req.params;
 
-    console.log("🔍 Received shopId:", shopId);
-    console.log("🔍 Received productId:", productId);
-
     if (!mongoose.Types.ObjectId.isValid(shopId)) {
-      console.error("❌ Invalid shopId format:", shopId);
+      console.error("Invalid shopId format:", shopId);
       return res.status(400).json({ message: "Invalid shopId" });
     }
 
     const shop = await User.findById(shopId);
 
     if (!shop) {
-      console.error("❌ Shop not found:", shopId);
+      console.error("Shop not found:", shopId);
       return res.status(404).json({ message: "Shop not found" });
     }
 
@@ -726,7 +722,7 @@ app.get("/public/shop/:shopId/product/:productId", async (req, res) => {
 
     res.status(404).json({ message: "Product not found" });
   } catch (err) {
-    console.error("🔥 Internal error:", err);
+    console.error("Internal error:", err);
     res
       .status(500)
       .json({ message: "Error fetching product", error: err.message });
@@ -765,7 +761,7 @@ app.get("/random-covers", async (req, res) => {
   }
 });
 
-// ✅ Get ALL products from all shops (for MainScreen)
+// Get ALL products from all shops (for MainScreen)
 app.get("/public/all-products", async (req, res) => {
   try {
     const shops = await User.find();
@@ -801,7 +797,7 @@ app.get("/public/all-products", async (req, res) => {
 
     res.json(allProducts);
   } catch (err) {
-    console.error("❌ Error fetching all products:", err);
+    console.error("Error fetching all products:", err);
     res.status(500).json({ message: "Error fetching all products" });
   }
 });
@@ -822,7 +818,7 @@ app.get("/public/shop-products/:shopName", async (req, res) => {
 
   try {
     const shop = await User.findOne({
-      shopName: { $regex: new RegExp(`^${shopName}$`, "i") }, // تطابق مضبوط مع تجاهل حالة الحروف والمسافات
+      shopName: { $regex: new RegExp(`^${shopName}$`, "i") }, 
     });
 
     if (!shop) return res.status(404).json({ message: "Shop not found1" });
@@ -869,62 +865,95 @@ app.get("/public/search-suggestions", async (req, res) => {
   if (!query) return res.json([]);
 
   try {
-    const shops = await User.find();
+    const regex = new RegExp(query, "i");
     const suggestions = [];
 
-    const synonyms = {
-      pants: ["bottoms", "pant"],
-      bottoms: ["pants"],
-      skirt: ["skirts"],
-      skirts: ["skirt"],
-      dress: ["dresses"],
-      dresses: ["dress"],
-      shoe: ["shoes"],
-      shoes: ["shoe"],
-    };
-
-    function normalize(word) {
-      return word.trim().toLowerCase().replace(/s$/, "");
-    }
-
-    function isSimilar(word1, word2) {
-      const norm1 = normalize(word1);
-      const norm2 = normalize(word2);
-      if (norm1 === norm2) return true;
-      if (synonyms[norm1] && synonyms[norm1].includes(norm2)) return true;
-      if (synonyms[norm2] && synonyms[norm2].includes(norm1)) return true;
-      return false;
-    }
-
-    const words = query.split(" ").filter(Boolean);
-
     // Shops
-    for (const shop of shops) {
-      if (shop.shopName.toLowerCase().includes(query)) {
-        suggestions.push({
-          type: "shop",
-          name: shop.shopName,
-          shopId: shop._id,
-          status: shop.status,
-        });
+    const shopResults = await User.find(
+      { shopName: regex, status: "approved" },
+      { _id: 1, shopName: 1, status: 1 }
+    );
+
+    for (const shop of shopResults) {
+      suggestions.push({
+        type: "shop",
+        name: shop.shopName,
+        shopId: shop._id,
+        status: shop.status,
+      });
+    }
+
+    //  Categories (match directly in DB)
+    const categoryShops = await User.find(
+      { "categories.name": regex, status: "approved" },
+      { _id: 1, shopName: 1, status: 1, categories: 1 }
+    );
+
+    const addedCats = new Set();
+    for (const shop of categoryShops) {
+      for (const category of shop.categories || []) {
+        if (regex.test(category.name) && !addedCats.has(category.name)) {
+          suggestions.push({
+            type: "category",
+            name: category.name,
+            shopId: shop._id,
+            status: shop.status,
+          });
+          addedCats.add(category.name);
+        }
       }
     }
 
-    // Categories (INTELLIGENT + PARTIAL MATCH)
-    const categoryMap = new Map();
+    // Colors using aggregate pipeline
+    const colorMatches = await User.aggregate([
+      { $match: { status: "approved" } },
+      { $unwind: "$categories" },
+      { $unwind: "$categories.products" },
+      { $unwind: "$categories.products.colors" },
+      { $match: { "categories.products.colors.name": regex } },
+      {
+        $project: {
+          shopId: "$_id",
+          categoryName: "$categories.name",
+          productName: "$categories.products.title",
+          productId: "$categories.products._id",
+          colorName: "$categories.products.colors.name",
+          status: "$status",
+        },
+      },
+    ]);
 
-    for (const shop of shops) {
-      for (const category of shop.categories) {
-        const catName = category.name?.trim().toLowerCase();
-        if (!catName) continue;
+    const addedColors = new Set();
+    for (const c of colorMatches) {
+      const key = `${c.colorName}|${c.categoryName}`;
+      if (!addedColors.has(key)) {
+        suggestions.push({
+          type: "color",
+          colorName: c.colorName,
+          categoryName: c.categoryName,
+          productName: c.productName,
+          productId: c.productId,
+          shopId: c.shopId,
+          status: c.status,
+        });
+        addedColors.add(key);
+      }
+    }
 
-        if (catName.includes(query) || isSimilar(catName, query)) {
-          const normalizedCat = normalize(catName);
+    // Products
+    const productShops = await User.find(
+      { "categories.products.title": regex, status: "approved" },
+      { _id: 1, shopName: 1, status: 1, categories: 1 }
+    );
 
-          if (!categoryMap.has(normalizedCat)) {
-            categoryMap.set(normalizedCat, {
-              type: "category",
-              name: category.name,
+    for (const shop of productShops) {
+      for (const category of shop.categories || []) {
+        for (const product of category.products || []) {
+          if (regex.test(product.title)) {
+            suggestions.push({
+              type: "product",
+              name: product.title,
+              productId: product._id,
               shopId: shop._id,
               status: shop.status,
             });
@@ -933,79 +962,9 @@ app.get("/public/search-suggestions", async (req, res) => {
       }
     }
 
-    suggestions.push(...Array.from(categoryMap.values()));
-
-    // Products
-    for (const shop of shops) {
-      for (const category of shop.categories) {
-        for (const product of category.products) {
-          if (product.title?.toLowerCase().includes(query)) {
-            suggestions.push({
-              type: "product",
-              name: product.title,
-              productId: product._id,
-              shopId: shop._id,
-              status: shop.status
-            });
-          }
-        }
-      }
-    }
-
-    // Colors
-    const colorMap = new Map();
-
-    for (const shop of shops) {
-      for (const category of shop.categories) {
-        for (const product of category.products) {
-          for (const color of product.colors) {
-            const colorName = color.name?.toLowerCase() || "";
-
-            if (words.length === 1 && colorName.includes(query)) {
-              const key = `${colorName}|${category.name}`;
-              if (!colorMap.has(key)) {
-                colorMap.set(key, {
-                  type: "color",
-                  colorName: color.name,
-                  categoryName: category.name,
-                  productName: product.title,
-                  productId: product._id,
-                  shopId: shop._id,
-                  status: shop.status
-                });
-              }
-            }
-
-            if (words.length === 2) {
-              const [word1, word2] = words;
-              if (
-                colorName.includes(word1) &&
-                category.name?.toLowerCase().includes(word2)
-              ) {
-                const key = `${colorName}|${category.name}`;
-                if (!colorMap.has(key)) {
-                  colorMap.set(key, {
-                    type: "color",
-                    colorName: color.name,
-                    categoryName: category.name,
-                    productName: product.title,
-                    productId: product._id,
-                    shopId: shop._id,
-                    status: shop.status
-                  });
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    suggestions.push(...Array.from(colorMap.values()));
-
     res.json(suggestions);
   } catch (err) {
-    console.error("❌ Error searching suggestions:", err);
+    console.error(" Error searching suggestions:", err);
     res.status(500).json({ message: "Error searching suggestions" });
   }
 });
@@ -1015,8 +974,7 @@ app.get("/public/search-category-products", async (req, res) => {
   if (!query) return res.json([]);
 
   try {
-    const shops = await User.find();
-    const allProducts = [];
+    const queryWords = query.split(" ").map(w => w.trim().toLowerCase());
 
     const synonyms = {
       pants: ["bottoms", "pant"],
@@ -1036,35 +994,35 @@ app.get("/public/search-category-products", async (req, res) => {
       child: ["kid", "kids"],
     };
 
-    function normalize(word) {
-      return word.trim().toLowerCase().replace(/s$/, "");
-    }
-
-    function isSimilar(word1, word2) {
+    const normalize = (word) => word.trim().toLowerCase().replace(/s$/, "");
+    const isSimilar = (word1, word2) => {
       const norm1 = normalize(word1);
       const norm2 = normalize(word2);
-      if (norm1 === norm2) return true;
-      if (synonyms[norm1]?.includes(norm2)) return true;
-      if (synonyms[norm2]?.includes(norm1)) return true;
-      return false;
-    }
+      return norm1 === norm2 ||
+             synonyms[norm1]?.includes(norm2) ||
+             synonyms[norm2]?.includes(norm1);
+    };
 
-    const queryWords = query.split(" ").map(normalize);
+    const normalizedQueryWords = queryWords.map(normalize);
+    const allProducts = [];
+
+    const shops = await User.find({}, {
+      shopName: 1,
+      categories: 1
+    });
 
     for (const shop of shops) {
-      for (const category of shop.categories) {
-        const categoryWords =
-          category.name
-            ?.toLowerCase()
-            .split(/\s|&|-/)
-            .map(normalize) || [];
+      for (const category of shop.categories || []) {
+        const catName = category.name?.toLowerCase();
+        if (!catName) continue;
 
-        const matches = queryWords.some((queryWord) =>
-          categoryWords.some((catWord) => isSimilar(catWord, queryWord))
+        const catWords = catName.split(/\s|&|-/).map(normalize);
+        const isMatch = normalizedQueryWords.some((qWord) =>
+          catWords.some((catWord) => isSimilar(qWord, catWord))
         );
 
-        if (matches) {
-          for (const product of category.products) {
+        if (isMatch) {
+          for (const product of category.products || []) {
             allProducts.push({
               ...product.toObject(),
               shopName: shop.shopName,
@@ -1078,10 +1036,11 @@ app.get("/public/search-category-products", async (req, res) => {
 
     res.json(allProducts);
   } catch (err) {
-    console.error("Error fetching category products:", err);
+    console.error(" Error fetching category products:", err);
     res.status(500).json({ message: "Error fetching category products" });
   }
 });
+
 app.get("/shop/:shopId/orders", async (req, res) => {
   try {
     const { shopId } = req.params;
@@ -1118,7 +1077,7 @@ app.get("/shop/:shopId/orders", async (req, res) => {
 
     res.status(200).json(orders);
   } catch (error) {
-    console.error("❌ Error fetching filtered shop orders:", error);
+    console.error(" Error fetching filtered shop orders:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -1131,7 +1090,7 @@ app.put("/orders/:orderId/status", async (req, res) => {
     const updateData = { status };
 
     if (status === "Delivered to Admin") {
-      updateData.deliveredToAdminAt = new Date(); // ✅ Set the delivery date
+      updateData.deliveredToAdminAt = new Date(); // Set the delivery date
     }
 
     const order = await Order.findOneAndUpdate({ orderId }, updateData, {
@@ -1142,7 +1101,7 @@ app.put("/orders/:orderId/status", async (req, res) => {
 
     res.json({ message: "Status updated", order });
   } catch (err) {
-    console.error("❌ Error updating status:", err);
+    console.error(" Error updating status:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -1189,7 +1148,7 @@ app.post("/notify-soldout", async (req, res) => {
     await notification.save();
     res.status(201).json({ message: "Sold out notification created" });
   } catch (err) {
-    console.error("❌ Error saving sold-out notification:", err.message);
+    console.error(" Error saving sold-out notification:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -1210,7 +1169,7 @@ app.get("/notifications/:shopId", async (req, res) => {
 
     res.status(200).json(notifications);
   } catch (error) {
-    console.error("❌ Error fetching notifications:", error);
+    console.error(" Error fetching notifications:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -1231,7 +1190,7 @@ app.put("/notifications/:notificationId/read", async (req, res) => {
 
     res.json({ message: "Marked as read" });
   } catch (err) {
-    console.error("❌ Error marking notification as read:", err);
+    console.error(" Error marking notification as read:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -1377,5 +1336,5 @@ app.get("/statistics/top-products", async (req, res) => {
 // ======================
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, "0.0.0.0", () =>
-  console.log(`✅ Server running on port ${PORT} (ready for ngrok)`)
+  console.log(` Server running on port ${PORT} (ready for ngrok)`)
 );

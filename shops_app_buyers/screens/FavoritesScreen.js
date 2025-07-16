@@ -33,7 +33,7 @@ const FavoritesScreen = ({ route }) => {
 
   useEffect(() => {
     if (!userId) {
-      console.warn("⚠️ userId is undefined or null, cannot fetch favorites");
+      console.warn("userId is undefined or null, cannot fetch favorites");
       return;
     }
     fetchFavorites();
@@ -45,7 +45,7 @@ const FavoritesScreen = ({ route }) => {
       setFavorites(res.data);
     } catch (err) {
       console.error(
-        "❌ Failed to fetch favorites:",
+        "Failed to fetch favorites:",
         err.response?.data || err.message
       );
     }
@@ -76,7 +76,6 @@ const FavoritesScreen = ({ route }) => {
   };
 
   const handleFavoriteToggle = async () => {
-    // ✅ أعد تحميل المفضلات مباشرة بعد أي تعديل
     await fetchFavorites();
   };
 
@@ -186,7 +185,7 @@ const FavoritesScreen = ({ route }) => {
           onAddToCart={handleAddToCart}
           shopId={selectedProductDetails?.shopId}
           userId={userId}
-          onFavoriteToggle={handleFavoriteToggle} // ✅ مهم
+          onFavoriteToggle={handleFavoriteToggle} 
           setSelectedSize={setSelectedSize}
         />
       )}

@@ -81,7 +81,7 @@ const ShopOrdersScreen = ({ route, navigation }) => {
 
       setOrders(res.data);
     } catch (err) {
-      console.error("❌ Error fetching orders:", err);
+      console.error("Error fetching orders:", err);
     }
   };
   const handleCustomerNameChange = (text) => {

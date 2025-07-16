@@ -10,7 +10,7 @@ const NotificationSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     required: true,
   },
-  productTitle: { type: String }, // 👈 أضف هذا السطر
+  productTitle: { type: String }, 
   color: String,
   size: String,
   isRead: { type: Boolean, default: false },

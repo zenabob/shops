@@ -9,7 +9,7 @@ import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "../config";
 
-// 🔐 HomeScreen is the login screen for sellers
+// HomeScreen is the login screen for sellers
 const HomeScreen = () => {
   const navigation = useNavigation();
 

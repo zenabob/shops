@@ -25,8 +25,8 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch((err) => console.log("❌ MongoDB Connection Error:", err));
+  .then(() => console.log(" MongoDB Connected"))
+  .catch((err) => console.log(" MongoDB Connection Error:", err));
 
 const UserSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
@@ -283,7 +283,7 @@ app.post("/UserAccount", async (req, res) => {
 
     res.status(201).json({ message: "User registered successfully!" });
   } catch (error) {
-    console.error("❌ Error saving data:", error);
+    console.error(" Error saving data:", error);
     res.status(500).json({ error: { general: "Internal Server Error" } });
   }
 });
@@ -313,7 +313,7 @@ app.post("/profile/:userId/cart", async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // ✅ Declare the variable here
+    // Declare the variable here
     const existingItem = user.cart.find(
       (item) =>
         item.shopId.toString() === shopId &&
@@ -325,7 +325,7 @@ app.post("/profile/:userId/cart", async (req, res) => {
     if (existingItem) {
       existingItem.quantity += 1;
 
-      // ✅ Update the offer if it's new or updated
+      // Update the offer if it's new or updated
       if (
         offer &&
         (!existingItem.offer ||
@@ -359,11 +359,10 @@ app.post("/profile/:userId/cart", async (req, res) => {
 
 app.get("/profile/:userId/cart", async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId).populate("cart.shopId");
+    const { userId } = req.params;
+    const user = await User.findById(userId).populate("cart.shopId");
 
     if (!user) return res.status(404).json({ message: "User not found" });
-
-    if (!user.cart || !Array.isArray(user.cart)) user.cart = [];
 
     const updatedCart = [];
 
@@ -374,35 +373,25 @@ app.get("/profile/:userId/cart", async (req, res) => {
         const resProduct = await axios.get(
           `${SELLER_API_BASE_URL}/public/shop/${shopId._id}/product/${productId}`
         );
-
         const product = resProduct.data?.product;
-        if (!product) continue;
 
-        const productOffer = product.offer;
-
-        // ✅ تحقق من صلاحية العرض وأضفه للسلة إن وجد
-        if (
-          productOffer &&
-          productOffer.expiresAt &&
-          new Date(productOffer.expiresAt) > new Date()
-        ) {
-          item.offer = productOffer;
+        if (product?.offer && new Date(product.offer.expiresAt) > new Date()) {
+          item.offer = product.offer;
         } else {
           item.offer = null;
         }
 
         updatedCart.push(item);
       } catch (err) {
-        console.warn("❌ Error fetching product for cart item:", productId);
+        console.warn("Error fetching product for cart item:", productId);
       }
     }
 
-    user.cart = updatedCart;
-    await user.save();
+    await User.findByIdAndUpdate(userId, { cart: updatedCart });
 
-    res.status(200).json(user.cart);
+    res.status(200).json(updatedCart);
   } catch (error) {
-    console.error("❌ Error fetching cart:", error);
+    console.error(" Error fetching cart:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
@@ -477,7 +466,7 @@ app.post("/user/:userId/favorites", async (req, res) => {
         };
       }
     } catch (err) {
-      console.warn("⚠️ Failed to fetch offer while adding to favorites:", err);
+      console.warn(" Failed to fetch offer while adding to favorites:", err);
     }
 
     user.favorites.push({
@@ -503,10 +492,11 @@ app.post("/user/:userId/favorites", async (req, res) => {
 app.get("/user/:userId/favorites", async (req, res) => {
   try {
     const { userId } = req.params;
+
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    let updated = false;
+    const updatedFavorites = [];
 
     for (let i = 0; i < user.favorites.length; i++) {
       const fav = user.favorites[i];
@@ -522,24 +512,25 @@ app.get("/user/:userId/favorites", async (req, res) => {
             discountPercentage: product.offer.discountPercentage,
             expiresAt: product.offer.expiresAt,
           };
-          updated = true;
-        } else if (fav.offer) {
+        } else {
           fav.offer = null;
-          updated = true;
         }
+
+        updatedFavorites.push(fav);
       } catch (err) {
-        console.warn("❌ Error fetching offer for:", fav.productId);
+        console.warn(" Error fetching offer for:", fav.productId);
       }
     }
 
-    if (updated) await user.save();
+    await User.findByIdAndUpdate(userId, { favorites: updatedFavorites });
 
-    res.status(200).json(user.favorites);
+    res.status(200).json(updatedFavorites);
   } catch (error) {
-    console.error("❌ Error fetching favorites:", error);
+    console.error(" Error fetching favorites:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
+
 
 app.put("/profile/:userId/cart/update-quantity", async (req, res) => {
   try {
@@ -647,10 +638,9 @@ app.post("/user/:userId/viewed", async (req, res) => {
     const { userId } = req.params;
     const { productId } = req.body;
 
-    const user = await User.findById(userId); // أو حسب اسم موديل المستخدم عندك
+    const user = await User.findById(userId); 
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // 🔥 قبل الإضافة تأكدي ما يكرر نفس المنتج عدة مرات
     const alreadyViewed = user.viewedProducts.find(
       (item) => item.productId.toString() === productId
     );
@@ -662,7 +652,7 @@ app.post("/user/:userId/viewed", async (req, res) => {
 
     res.status(200).json({ message: "View registered successfully" });
   } catch (err) {
-    console.error("❌ Error registering view:", err);
+    console.error(" Error registering view:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -689,7 +679,7 @@ app.get("/user/:userId/personalized-products", async (req, res) => {
 
     const allCategories = [
       ...new Set([...favoriteCategories, ...cartCategories]),
-    ]; // بدون تكرار
+    ]; 
 
     const productMatchConditions = [];
 
@@ -718,12 +708,12 @@ app.get("/user/:userId/personalized-products", async (req, res) => {
           categoryName: 1,
         },
       },
-      { $sample: { size: 20 } }, // اختيار عشوائي لو أردت
+      { $sample: { size: 20 } }, 
     ]);
 
     res.json(products);
   } catch (err) {
-    console.error("❌ Error fetching personalized products:", err);
+    console.error(" Error fetching personalized products:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -735,15 +725,12 @@ app.post("/orders/:userId", async (req, res) => {
 
     const user = await User.findById(userId).populate("cart.shopId");
     if (!user || !user.cart.length) {
-      return res
-        .status(400)
-        .json({ message: "User not found or cart is empty." });
+      return res.status(400).json({ message: "User not found or cart is empty." });
     }
 
     const groupedByShop = {};
     for (let item of user.cart) {
-      const shopKey =
-        item.shopId._id?.toString?.() || item.shopId?.toString?.();
+      const shopKey = item.shopId._id?.toString?.() || item.shopId?.toString?.();
       if (!groupedByShop[shopKey]) groupedByShop[shopKey] = [];
       groupedByShop[shopKey].push(item);
     }
@@ -757,14 +744,14 @@ app.post("/orders/:userId", async (req, res) => {
       const shop = await Shop.findById(shopId);
       if (!shop) continue;
 
+      const successfulItems = [];
+
       for (let item of items) {
         const product = shop.categories
           ?.flatMap((cat) => cat.products)
           ?.find((prod) => prod._id.toString() === item.productId);
 
-        const color = product?.colors.find(
-          (c) => c.name === item.selectedColor
-        );
+        const color = product?.colors.find((c) => c.name === item.selectedColor);
         const size = color?.sizes.find((s) => s.size === item.selectedSize);
 
         if (!size || size.stock < item.quantity) {
@@ -774,7 +761,6 @@ app.post("/orders/:userId", async (req, res) => {
             color: item.selectedColor,
             size: item.selectedSize,
             requested: item.quantity,
-            
             available: size ? size.stock : 0,
           });
           continue;
@@ -782,67 +768,53 @@ app.post("/orders/:userId", async (req, res) => {
 
         size.stock -= item.quantity;
         total += item.price * item.quantity;
+        successfulItems.push({ item, product });
       }
+
+      if (successfulItems.length === 0) continue;
 
       await shop.save();
 
-      const includeShipping = globalOrderIndex === 0;
-      const totalPrice = total;
-
       const order = new Order({
-  orderId: uuidv4(),
-  shopId,
-  userId,
-  userName: user.fullName,
-  userPhone: user.PhoneNumber,
-  userLocation: location,
-  totalPrice,
-  products: items.map(item => {
-  let finalPrice = item.price;
+        orderId: uuidv4(),
+        shopId,
+        userId,
+        userName: user.fullName,
+        userPhone: user.PhoneNumber,
+        userLocation: location,
+        totalPrice: total,
+        products: successfulItems.map(({ item, product }) => {
+          let finalPrice = item.price;
+          if (
+            item.offer &&
+            item.offer.discountPercentage &&
+            new Date(item.offer.expiresAt) > new Date()
+          ) {
+            finalPrice = +(item.price * (1 - item.offer.discountPercentage / 100)).toFixed(2);
+          }
 
-  if (
-    item.offer &&
-    item.offer.discountPercentage &&
-    new Date(item.offer.expiresAt) > new Date()
-  ) {
-    finalPrice = +(item.price * (1 - item.offer.discountPercentage / 100)).toFixed(2);
-  }
-
-  // ✅ نحصل على المنتج الحقيقي من shop
-  const product = shop.categories
-    ?.flatMap(cat => cat.products)
-    ?.find(prod => prod._id.toString() === item.productId);
-
-  return {
-    shopId,
-    productId: item.productId,
-    title: item.title,
-    image: product?.MainImage, 
-    price: finalPrice,
-    quantity: item.quantity,
-    selectedColor: item.selectedColor,
-    selectedSize: item.selectedSize,
-  };
-}),
-
-  status: "New",
-  createdAt: new Date(),
-});
+          return {
+            shopId,
+            productId: item.productId,
+            title: item.title,
+            image: product?.MainImage,
+            price: finalPrice,
+            quantity: item.quantity,
+            selectedColor: item.selectedColor,
+            selectedSize: item.selectedSize,
+          };
+        }),
+        status: "New",
+        createdAt: new Date(),
+      });
 
       await order.save();
       createdOrders.push(order);
-      globalOrderIndex++;
 
-      for (let item of items) {
-        const product = shop.categories
-          ?.flatMap((cat) => cat.products)
-          ?.find((prod) => prod._id.toString() === item.productId);
-
-        const color = product?.colors.find(
-          (c) => c.name === item.selectedColor
-        );
+      // Check if sold out
+      for (let { item, product } of successfulItems) {
+        const color = product?.colors.find((c) => c.name === item.selectedColor);
         const size = color?.sizes.find((s) => s.size === item.selectedSize);
-
         if (size?.stock === 0) {
           await axios.post(`${SELLER_API_BASE_URL}/notify-soldout`, {
             shopId,
@@ -852,117 +824,123 @@ app.post("/orders/:userId", async (req, res) => {
           });
         }
       }
+
+      globalOrderIndex++;
     }
 
+    // Clear user cart
     user.cart = [];
     await user.save();
 
-    if (failedItems.length > 0) {
-      return res.status(409).json({
-        message: "Some items couldn't be ordered due to stock limits.",
+    // Send email only if orders exist
+    if (createdOrders.length > 0) {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: "cartchic14@gmail.com",
+          pass: "yyjl iafr ontm nfck",
+        },
+      });
+
+      const totalProductPrice = createdOrders.reduce((sum, order) => {
+        return sum + order.products.reduce((s, item) => s + item.price * item.quantity, 0);
+      }, 0);
+
+      const totalPriceWithShipping = totalProductPrice + shippingCost;
+
+      const allItems = createdOrders.flatMap((order) => order.products);
+
+      function getFullImageUrl(imagePath) {
+        if (!imagePath) return "";
+        if (imagePath.startsWith("http")) return imagePath;
+        if (!imagePath.startsWith("/")) imagePath = "/" + imagePath;
+        return `${NGROK_URL}${imagePath}`;
+      }
+
+      const orderHtml = `
+        <div style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333;">
+          <h2 style="color: #4CAF50;">Thanks for your order | ChicCart</h2>
+          <p>Hello <strong>${user.fullName}</strong>,</p>
+          <p>Your order has been successfully placed.</p>
+
+          <hr style="margin: 20px 0;" />
+          <p><strong>Shipping Address:</strong><br>${user.location}</p>
+          <p><strong>Phone:</strong> 0${user.PhoneNumber}</p>
+
+          <h3>Order Summary</h3>
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr>
+                <th style="border-bottom:1px solid #ccc;text-align:left;">Image</th>
+                <th style="border-bottom:1px solid #ccc;text-align:left;">Product</th>
+                <th style="border-bottom:1px solid #ccc;text-align:left;">Qty</th>
+                <th style="border-bottom:1px solid #ccc;text-align:left;">Color</th>
+                <th style="border-bottom:1px solid #ccc;text-align:left;">Size</th>
+                <th style="border-bottom:1px solid #ccc;text-align:left;">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${allItems
+                .filter(item => item && item.productId && item.price)
+                .map(item => `
+                  <tr>
+                    <td><img src="${SELLER_API_BASE_URL}${item.image}" alt="${item.title}" width="60" style="border-radius:4px;" /></td>
+                    <td>${item.title}</td>
+                    <td>${item.quantity}</td>
+                    <td>${item.selectedColor}</td>
+                    <td>${item.selectedSize}</td>
+                    <td>₪${item.price}</td>
+                  </tr>
+              `).join("")}
+            </tbody>
+          </table>
+
+          <p style="margin-top: 20px;"><strong>Shipping:</strong> ₪${shippingCost}</p>
+          <p><strong>Total:</strong> ₪${totalPriceWithShipping}</p>
+
+          <hr style="margin: 20px 0;" />
+          <p style="margin-top: 10px;">Thanks for shopping with us!<br><strong>ChicCart Team</strong></p>
+        </div>
+      `;
+
+      await transporter.sendMail({
+        from: "cartchic14@gmail.com",
+        to: user.email,
+        subject: "Your ChicCart Order Confirmation",
+        html: orderHtml,
+      });
+
+      console.log(" Email sent to:", user.email);
+    }
+
+    // Return proper response
+    if (failedItems.length > 0 && createdOrders.length > 0) {
+      return res.status(207).json({
+        message: "Partial order completed. Some items were out of stock.",
         failedItems,
         createdOrders,
       });
     }
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: "cartchic14@gmail.com",
-        pass: "yyjl iafr ontm nfck", // App Password
-      },
-    });
 
-    const totalProductPrice = createdOrders.reduce((sum, order) => {
-      return (
-        sum +
-        order.products.reduce((s, item) => s + item.price * item.quantity, 0)
-      );
-    }, 0);
-
-    const totalPriceWithShipping = totalProductPrice + shippingCost;
-
-    const allItems = createdOrders.flatMap((order) => order.products);
-function getFullImageUrl(imagePath) {
-  if (!imagePath) return "";
-  if (imagePath.startsWith("http")) return imagePath;
-  if (!imagePath.startsWith("/")) imagePath = "/" + imagePath;
-  return `${NGROK_URL}${imagePath}`;
-}
-console.log("🧾 allItems images:", allItems.map(p => p.image));
-console.log("🔗 NGROK_URL used in email:", NGROK_URL);
-
-    const orderHtml = `
-  <div style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333;">
-    <h2 style="color: #4CAF50;">Thank you for your order | ChicCart</h2>
-    <p>Hello <strong>${user.fullName}</strong>,</p>
-    <p>Your order has been successfully placed.</p>
-
-    <hr style="margin: 20px 0;" />
-    <p><strong>Shipping Address:</strong><br>${user.location}</p>
-    <p><strong>Phone:</strong> 0${user.PhoneNumber}</p>
-
-    <h3>Order Summary</h3>
-    <table style="width:100%;border-collapse:collapse;">
-      <thead>
-        <tr>
-          <th style="border-bottom:1px solid #ccc;text-align:left;">Image</th>
-          <th style="border-bottom:1px solid #ccc;text-align:left;">Product</th>
-          <th style="border-bottom:1px solid #ccc;text-align:left;">Qty</th>
-          <th style="border-bottom:1px solid #ccc;text-align:left;">Color</th>
-          <th style="border-bottom:1px solid #ccc;text-align:left;">Size</th>
-          <th style="border-bottom:1px solid #ccc;text-align:left;">Price</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${allItems
-          .map(
-            (item) => `
-          <tr>
-            <td><img src="${SELLER_API_BASE_URL}${item.image}" alt="${
-              item.title
-            }" width="60" style="border-radius:4px;" /></td>
-            <td>${item.title}</td>
-            <td>${item.quantity}</td>
-            <td>${item.selectedColor}</td>
-            <td>${item.selectedSize}</td>
-            <td>₪${item.price}</td>
-          </tr>
-        `
-          )
-          .join("")}
-      </tbody>
-    </table>
-
-    <p style="margin-top: 20px;"><strong>Shipping:</strong> ₪${shippingCost}</p>
-    <p><strong>Total:</strong> ₪${totalPriceWithShipping}</p>
-
-    <hr style="margin: 20px 0;" />
-    <p style="margin-top: 10px;">Thanks for shopping with us!<br><strong>ChicCart Team</strong></p>
-  </div>
-`;
-
-    const mailOptions = {
-      from: "cartchic14@gmail.com",
-      to: user.email,
-      subject: "Your ChicCart Order Confirmation",
-      html: orderHtml,
-    };
-
-    try {
-      await transporter.sendMail(mailOptions);
-      console.log("📧 Email sent to:", user.email);
-    } catch (emailErr) {
-      console.error("❌ Failed to send email:", emailErr);
+    if (createdOrders.length > 0) {
+      return res.status(200).json({
+        message: "Thanks for your order! Please prepare the payment.",
+        createdOrders,
+      });
     }
 
-    res
-      .status(200)
-      .json({ message: "Thanks for your order! Please prepare the payment. You’ll pay when the order arrives.", createdOrders });
+    return res.status(409).json({
+      message: "All items failed due to stock issues.",
+      failedItems,
+    });
+
   } catch (error) {
-    console.error("❌ Order creation error:", error);
+    console.error(" Order creation error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
+
 app.delete("/admin/delete-shop-data/:shopId", async (req, res) => {
   const { shopId } = req.params;
 
@@ -975,10 +953,8 @@ app.delete("/admin/delete-shop-data/:shopId", async (req, res) => {
     });
 
     for (let user of users) {
-      // حذف من السلة
       user.cart = user.cart.filter((item) => item.shopId.toString() !== shopId);
 
-      // حذف من المفضلات
       user.favorites = user.favorites.filter((item) => item.shopId.toString() !== shopId);
 
       await user.save();
@@ -986,11 +962,11 @@ app.delete("/admin/delete-shop-data/:shopId", async (req, res) => {
 
     res.status(200).json({ message: "Client data related to shop deleted" });
   } catch (error) {
-    console.error("❌ Error deleting client-side shop data:", error);
+    console.error(" Error deleting client-side shop data:", error);
     res.status(500).json({ error: "Failed to clean client data" });
   }
 });
 
-// ✅ Start Server
+// Start Server
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

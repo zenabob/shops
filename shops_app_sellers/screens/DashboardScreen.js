@@ -78,7 +78,7 @@ const DashboardDrawer = ({ shopId, userId, isDark }) => {
   );
 };
 
-// 🌙 Main Dashboard Component
+// Main Dashboard Component
 const DashboardScreen = ({ shopId, route }) => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";

@@ -33,7 +33,7 @@ const CartScreen = () => {
       const intervalId = setInterval(fetchCart, 10000);
       return () => clearInterval(intervalId);
     } else {
-      console.warn("⚠️ userId is undefined");
+      console.warn(" userId is undefined");
     }
   }, [userId]);
 
@@ -250,7 +250,7 @@ total += finalPrice * item.quantity;
         const availableStock = selectedSize ? selectedSize.stock : 0;
 
        if (!selectedSize || availableStock === 0) {
-  console.log("🟥 Sold out detected:", item);
+  console.log("Sold out detected:", item);
 
   await axios.delete(`${API_BASE_URL}/profile/${userId}/cart`, {
     data: {
@@ -309,7 +309,7 @@ else if (item.quantity > availableStock) {
         { cancelable: true }
       );
     } catch (error) {
-      console.error("❌ Error validating cart stock:", error);
+      console.error("Error validating cart stock:", error);
       Alert.alert("Error", "Could not verify product availability.");
     }
   };
@@ -353,7 +353,7 @@ else if (item.quantity > availableStock) {
                   `Please review your cart:\n\n${alertMessage}`
                 );
               } else {
-                console.error("❌ Order error:", error);
+                console.error(" Order error:", error);
                 Alert.alert(
                   "Error",
                   "Failed to confirm the order. Please try again."
@@ -400,198 +400,239 @@ else if (item.quantity > availableStock) {
           style={styles.backIcon}
         />
       </TouchableOpacity>
+<FlatList
+  data={shopGroups}
+  keyExtractor={(item, index) =>
+    item.shopId.toString() || `shop-${index}`
+  }
+  renderItem={({ item }) => (
+    <View style={styles.shopSection}>
+      <Text style={styles.shopName}>{item.shopName}</Text>
 
-      <FlatList
-        data={shopGroups}
-        keyExtractor={(item, index) =>
-          item.shopId.toString() || `shop-${index}`
-        }
-        renderItem={({ item }) => (
-          <View style={styles.shopSection}>
-            <Text style={styles.shopName}>{item.shopName}</Text>
+      {item.products.map((product) => {
+        const key = `${product.productId}_${product.selectedColor}_${product.selectedSize}`;
+        const isFav = favorites.some(
+          (fav) => fav.productId === product.productId
+        );
 
-            {item.products.map((product) => {
-              const key = `${product.productId}_${product.selectedColor}_${product.selectedSize}`;
-              const isFav = favorites.some(
-                (fav) => fav.productId === product.productId
-              );
-
-              return (
-                <Swipeable
-                  key={key}
-                  ref={swipeableRefs.current[key]}
-                  onSwipeableWillOpen={() => {
-                    Object.entries(swipeableRefs.current).forEach(
-                      ([k, refObj]) => {
-                        if (k !== key && refObj?.current) {
-                          refObj.current.close();
-                        }
-                      }
-                    );
-                  }}
-                  renderRightActions={(progress, dragX) =>
-                    renderRightActions(progress, dragX, product)
+        return (
+          <Swipeable
+            key={key}
+            ref={swipeableRefs.current[key]}
+            onSwipeableWillOpen={() => {
+              Object.entries(swipeableRefs.current).forEach(
+                ([k, refObj]) => {
+                  if (k !== key && refObj?.current) {
+                    refObj.current.close();
                   }
-                >
-                  <View style={styles.productCard}>
-                    {product.image && (
-                     <Image
-  source={{
-    uri: product.image?.startsWith("http")
-      ? product.image
-      : `${SELLER_API_BASE_URL}${product.image.startsWith("/") ? "" : "/"}${product.image}`,
-  }}
-  style={styles.productImage}
-/>
-
-                    )}
-                    <View style={styles.productDetails}>
-                      <Text style={styles.title}>
-                        {product.title || "No title"}
-                      </Text>
-
-                      {product.offer &&
-                      new Date(product.offer.expiresAt) > new Date() ? (
-                        <View>
-                          <Text style={styles.originalPrice}>
-                            {(
-                              product.price /
-                              (1 - product.offer.discountPercentage / 100)
-                            ).toFixed(2)}{" "}
-                            ILS
-                          </Text>
-                          <Text style={styles.discountedPrice}>
-                            {product.price} ILS
-                          </Text>
-                        </View>
-                      ) : (
-                        <Text style={styles.price}>{product.price} ILS</Text>
-                      )}
-
-                      <Text style={styles.options}>
-                        Color: {product.selectedColor} | Size:{" "}
-                        {product.selectedSize}
-                      </Text>
-
-                      <View style={styles.actions}>
-                        <View style={styles.quantityBox}>
-                          <TouchableOpacity
-                            onPress={() =>
-                              updateCartQuantity(
-                                product.productId,
-                                product.selectedColor,
-                                product.selectedSize,
-                                product.quantity > 1 ? product.quantity - 1 : 1
-                              )
-                            }
-                          >
-                            <Text style={styles.quantityButton}>-</Text>
-                          </TouchableOpacity>
-                          <Text style={styles.quantityText}>
-                            {product.quantity}
-                          </Text>
-                          <TouchableOpacity
-                            onPress={async () => {
-                              try {
-                                const res = await axios.get(
-                                  `${SELLER_API_BASE_URL}/public/shop/${product.shopId._id}/product/${product.productId}`
-                                );
-
-                                const productData = res.data.product;
-                                const selectedColor = productData.colors.find(
-                                  (c) => c.name === product.selectedColor
-                                );
-                                const selectedSizeObj =
-                                  selectedColor?.sizes.find(
-                                    (s) => s.size === product.selectedSize
-                                  );
-
-                                if (!selectedSizeObj) {
-                                  Alert.alert(
-                                    "Error",
-                                    "Size not found in product data."
-                                  );
-                                  return;
-                                }
-
-                                if (
-                                  product.quantity + 1 >
-                                  selectedSizeObj.stock
-                                ) {
-                                  Alert.alert(
-                                    "Insufficient Stock",
-                                    `Only ${selectedSizeObj.stock} pieces available in stock.`
-                                  );
-                                  return;
-                                }
-
-                                updateCartQuantity(
-                                  product.productId,
-                                  product.selectedColor,
-                                  product.selectedSize,
-                                  product.quantity + 1
-                                );
-                              } catch (error) {
-                                console.error("Error checking stock:", error);
-                                Alert.alert(
-                                  "Error",
-                                  "Failed to check stock. Please try again."
-                                );
-                              }
-                            }}
-                          >
-                            <Text style={styles.quantityButton}>+</Text>
-                          </TouchableOpacity>
-                        </View>
-
-                        <TouchableOpacity
-                          onPress={() => toggleFavorite(product)}
-                        >
-                          <Image
-                            source={
-                              isFav
-                                ? require("../assets/img/BlackFullHeart.png")
-                                : require("../assets/img/BlackHeart.png")
-                            }
-                            style={styles.heartIcon}
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
-                </Swipeable>
+                }
               );
-            })}
+            }}
+            renderRightActions={(progress, dragX) =>
+              renderRightActions(progress, dragX, product)
+            }
+          >
+            <View style={styles.productCard}>
+              {product.image && (
+                <Image
+                  source={{
+                    uri: product.image?.startsWith("http")
+                      ? product.image
+                      : `${SELLER_API_BASE_URL}${product.image.startsWith("/") ? "" : "/"}${product.image}`,
+                  }}
+                  style={styles.productImage}
+                />
+              )}
+              <View style={styles.productDetails}>
+                <Text style={styles.title}>
+                  {product.title || "No title"}
+                </Text>
+
+                {product.offer &&
+                new Date(product.offer.expiresAt) > new Date() ? (
+                  <View>
+                    <Text style={styles.originalPrice}>
+                      {(
+                        product.price /
+                        (1 - product.offer.discountPercentage / 100)
+                      ).toFixed(2)}{" "}
+                      ILS
+                    </Text>
+                    <Text style={styles.discountedPrice}>
+                      {product.price} ILS
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={styles.price}>{product.price} ILS</Text>
+                )}
+
+                <Text style={styles.options}>
+                  Color: {product.selectedColor} | Size:{" "}
+                  {product.selectedSize}
+                </Text>
+
+                <View style={styles.actions}>
+                  <View style={styles.quantityBox}>
+                    <TouchableOpacity
+                      onPress={() =>
+                        updateCartQuantity(
+                          product.productId,
+                          product.selectedColor,
+                          product.selectedSize,
+                          product.quantity > 1 ? product.quantity - 1 : 1
+                        )
+                      }
+                    >
+                      <Text style={styles.quantityButton}>-</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.quantityText}>
+                      {product.quantity}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={async () => {
+                        try {
+                          const res = await axios.get(
+                            `${SELLER_API_BASE_URL}/public/shop/${product.shopId._id}/product/${product.productId}`
+                          );
+
+                          const productData = res.data.product;
+                          const selectedColor = productData.colors.find(
+                            (c) => c.name === product.selectedColor
+                          );
+                          const selectedSizeObj =
+                            selectedColor?.sizes.find(
+                              (s) => s.size === product.selectedSize
+                            );
+
+                          if (!selectedSizeObj) {
+                            Alert.alert(
+                              "Error",
+                              "Size not found in product data."
+                            );
+                            return;
+                          }
+
+                          if (
+                            product.quantity + 1 >
+                            selectedSizeObj.stock
+                          ) {
+                            Alert.alert(
+                              "Insufficient Stock",
+                              `Only ${selectedSizeObj.stock} pieces available in stock.`
+                            );
+                            return;
+                          }
+
+                          updateCartQuantity(
+                            product.productId,
+                            product.selectedColor,
+                            product.selectedSize,
+                            product.quantity + 1
+                          );
+                        } catch (error) {
+                          console.error("Error checking stock:", error);
+                          Alert.alert(
+                            "Error",
+                            "Failed to check stock. Please try again."
+                          );
+                        }
+                      }}
+                    >
+                      <Text style={styles.quantityButton}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={() => toggleFavorite(product)}
+                  >
+                    <Image
+                      source={
+                        isFav
+                          ? require("../assets/img/BlackFullHeart.png")
+                          : require("../assets/img/BlackHeart.png")
+                      }
+                      style={styles.heartIcon}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Swipeable>
+        );
+      })}
+    </View>
+  )}
+  ListFooterComponent={() => (
+  <View>
+    {soldOutItems.length > 0 && (
+      <View style={{ paddingHorizontal: 10, paddingTop: 20 }}>
+        <Text style={{ fontSize: 16, fontWeight: "bold", color: "red", marginBottom: 10 }}>
+          Sold Out Items
+        </Text>
+        {soldOutItems.map((item, index) => (
+          <View
+            key={index}
+            style={{
+              marginBottom: 10,
+              backgroundColor: "#fdd",
+              padding: 10,
+              borderRadius: 10,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: "bold" }}>{item.title}</Text>
+              <Text style={{ color: "#555" }}>
+                Color: {item.selectedColor} | Size: {item.selectedSize}
+              </Text>
+              <Text style={{ color: "red" }}>Out of stock</Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={async () => {
+                try {
+                  await axios.delete(`${API_BASE_URL}/profile/${userId}/cart`, {
+                    data: {
+                      productId: item.productId,
+                      selectedColor: item.selectedColor,
+                      selectedSize: item.selectedSize,
+                    },
+                  });
+
+                  setSoldOutItems((prev) =>
+                    prev.filter(
+                      (i) =>
+                        !(
+                          i.productId === item.productId &&
+                          i.selectedColor === item.selectedColor &&
+                          i.selectedSize === item.selectedSize
+                        )
+                    )
+                  );
+                } catch (err) {
+                  console.error("❌ Error removing sold out item:", err);
+                  Alert.alert("Error", "Failed to remove item.");
+                }
+              }}
+              style={{ marginLeft: 10 }}
+            >
+              <Image
+                source={require("../assets/img/delete.png")}
+                style={{ width: 24, height: 24, tintColor: "red" }}
+              />
+            </TouchableOpacity>
           </View>
-        )}
-        ListFooterComponent={<View style={{ height: 120 }} />}
-      />
-      {soldOutItems.length > 0 && (
-  <View style={{marginTop:-30,  maxHeight: 250, paddingHorizontal: 10,marginBottom: 20 }}>
-    <Text style={{ fontSize: 16, fontWeight: "bold", color: "red", marginBottom: 20 , marginTop:-30 }}>
-      Sold Out Items
-    </Text>
-    <ScrollView>
-      {soldOutItems.map((item, index) => (
-        <View
-          key={index}
-          style={{
-            marginBottom: 10,
-            backgroundColor: "#fdd",
-            padding: 10,
-            borderRadius: 10,
-          }}
-        >
-          <Text style={{ fontWeight: "bold" }}>{item.title}</Text>
-          <Text style={{ color: "#555" }}>
-            Color: {item.selectedColor} | Size: {item.selectedSize}
-          </Text>
-          <Text style={{ color: "red" }}>Out of stock</Text>
-        </View>
-      ))}
-    </ScrollView>
+        ))}
+      </View>
+    )}
+    <View style={{ height: 150 }} />
   </View>
 )}
+
+/>
+
 
       <View style={styles.summaryContainer}>
         <TouchableOpacity

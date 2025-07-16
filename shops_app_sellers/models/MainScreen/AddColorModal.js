@@ -297,14 +297,14 @@ const AddColorModal = ({
                     }
                   );
 
-                  // 🟢 Now make sure ProductDetails shows the new color info
+                  // Now make sure ProductDetails shows the new color info
                   setSelectedColorName(newColor.name);
                   setSelectedMainImage(newColor.previewImage);
                   setSelectedColorImages(newColor.images);
                   setSelectedProductDetails((prev) => ({
                     ...prev,
                     colors: updatedColors,
-                    sizes: newColor.sizes, // 🟢 Add this so sizes show up too
+                    sizes: newColor.sizes, // Add this so sizes show up too
                   }));
 
                   setShowAddColorModal(false);
